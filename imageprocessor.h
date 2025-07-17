@@ -20,8 +20,14 @@ public:
      */
     static QImage sharpen(const QImage &sourceImage);
 
+    /**
+     * @brief 将图像转换为灰度图
+     * @param sourceImage 原始 QImage
+     * @return 灰度化后的 QImage
+     */
+    static QImage grayscale(const QImage &sourceImage);
+
     // 未来可以继续在这里添加其他静态处理函数
-    // static QImage grayscale(const QImage &sourceImage);
     // static QImage applyGamma(const QImage &sourceImage, double gamma);
 };
 

@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "imageprocessor.h" // <<< 1. 包含图像处理器头文件
+#include "imageprocessor.h" // 包含图像处理器头文件
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -31,8 +31,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // <<< 2. 连接信号和槽 (如果使用自动连接，这一步是可选的，但写出来更清晰)
+    // 连接信号和槽 (如果使用自动连接，这部分是可选的，但写出来更清晰)
     connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
+    // <<< 新增：连接灰度化按钮的信号到槽
+    connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
 }
 
 MainWindow::~MainWindow()
@@ -42,7 +44,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionopen_triggered()
 {
-    // ... (这部分代码保持不变)
     QList<QByteArray> supportedFormats = QImageReader::supportedImageFormats();
     QString filter = "Image Files (";
     for (const QByteArray &format : supportedFormats) {
@@ -66,16 +67,14 @@ void MainWindow::on_actionopen_triggered()
         return;
     }
 
-    // <<< 3. 打开新图片时，将处理后的图片也重置为原始图片
     processedPixmap = originalPixmap;
 
-    updateDisplayImage(processedPixmap); // 使用新函数更新显示
+    updateDisplayImage(processedPixmap);
     fitToWindow();
     updateImageInfo();
     ui->statusbar->showMessage(tr("成功打开: %1").arg(currentFilePath), 5000);
 }
 
-// <<< 4. 新增的槽函数实现
 void MainWindow::on_imageSharpenButton_clicked()
 {
     if (processedPixmap.isNull()) {
@@ -83,7 +82,6 @@ void MainWindow::on_imageSharpenButton_clicked()
         return;
     }
 
-    // 将当前处理后的图像转换为 QImage 进行锐化
     QImage sourceImage = processedPixmap.toImage();
     QImage sharpenedImage = ImageProcessor::sharpen(sourceImage);
 
@@ -92,24 +90,42 @@ void MainWindow::on_imageSharpenButton_clicked()
         return;
     }
 
-    // 更新处理后的图像
     processedPixmap = QPixmap::fromImage(sharpenedImage);
 
-    // 更新显示
     updateDisplayImage(processedPixmap);
     ui->statusbar->showMessage("图像锐化完成", 3000);
 }
 
-// <<< 5. 新增的图像更新函数
-/**
- * @brief 使用给定的 pixmap 更新场景和显示
- * @param pixmap 要显示的 QPixmap
- */
+// <<< 新增：灰度化按钮的槽函数实现
+void MainWindow::on_imageGrayscaleButton_clicked()
+{
+    if (processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先打开一张图片。");
+        return;
+    }
+
+    // 将当前处理后的图像转换为 QImage 进行处理
+    QImage sourceImage = processedPixmap.toImage();
+    QImage grayscaledImage = ImageProcessor::grayscale(sourceImage);
+
+    if (grayscaledImage.isNull()) {
+        QMessageBox::warning(this, "错误", "图像灰度化失败。");
+        return;
+    }
+
+    // 更新处理后的图像
+    processedPixmap = QPixmap::fromImage(grayscaledImage);
+
+    // 更新显示
+    updateDisplayImage(processedPixmap);
+    ui->statusbar->showMessage("图像灰度化完成", 3000);
+}
+
+
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
 {
     if (pixmap.isNull()) return;
 
-    // 清空场景并添加新的 pixmap
     imageScene->clear();
     pixmapItem = imageScene->addPixmap(pixmap);
     imageScene->setSceneRect(pixmap.rect());

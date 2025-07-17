@@ -26,14 +26,14 @@ protected:
 
 private slots:
     void on_actionopen_triggered();
-    // --- 新增槽函数，用于响应锐化按钮点击 ---
     void on_imageSharpenButton_clicked();
+    // --- 新增槽函数，用于响应灰度化按钮点击 ---
+    void on_imageGrayscaleButton_clicked();
 
 private:
     void scaleImage(double newScale);
     void fitToWindow();
     void updateImageInfo();
-    // --- 新增函数，用于更新显示 ---
     void updateDisplayImage(const QPixmap &pixmap);
 
     Ui::MainWindow *ui;
@@ -43,8 +43,7 @@ private:
     QGraphicsScene *imageScene;
     QGraphicsPixmapItem *pixmapItem;
 
-    // --- 新增/修改的成员变量 ---
-    QPixmap originalPixmap;    // 存储原始加载的图像
-    QPixmap processedPixmap;   // 存储当前处理后的图像
+    QPixmap originalPixmap;
+    QPixmap processedPixmap;
 };
 #endif // MAINWINDOW_H
