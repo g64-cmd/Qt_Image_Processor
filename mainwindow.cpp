@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "imageprocessor.h"
+#include "stagingareamanager.h"
+#include "draggableitemmodel.h"
+#include "droppablegraphicsview.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -17,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent)
     , scaleFactor(1.0)
     , imageScene(nullptr)
     , pixmapItem(nullptr)
+    , stagingManager(nullptr)
+    , stagingModel(nullptr)
 {
     ui->setupUi(this);
 
@@ -33,8 +38,19 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
     connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
-    // <<< 新增：连接 Canny 按钮的信号到槽
     connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
+
+    stagingModel = new DraggableItemModel(this);
+    stagingManager = new StagingAreaManager(stagingModel, this);
+    ui->recentImageView->setModel(stagingModel);
+    ui->recentImageView->setViewMode(QListView::IconMode);
+    ui->recentImageView->setIconSize(QSize(100, 100));
+    ui->recentImageView->setResizeMode(QListView::Adjust);
+    ui->recentImageView->setWordWrap(true);
+    ui->recentImageView->setDragEnabled(true);
+    connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
+
+    connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
 }
 
 MainWindow::~MainWindow()
@@ -42,111 +58,107 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-// ... on_actionopen_triggered, on_imageSharpenButton_clicked, on_imageGrayscaleButton_clicked 保持不变 ...
 void MainWindow::on_actionopen_triggered()
 {
-    QList<QByteArray> supportedFormats = QImageReader::supportedImageFormats();
-    QString filter = "Image Files (";
-    for (const QByteArray &format : supportedFormats) {
-        filter += "*." + QString(format) + " ";
+    QString fileName = QFileDialog::getOpenFileName(this, tr("打开图像"), "", "Image Files (*.png *.jpg *.bmp)");
+    if (!fileName.isEmpty()) {
+        loadNewImageFromFile(fileName);
     }
-    filter += ");;All Files (*)";
+}
 
-    QString fileName = QFileDialog::getOpenFileName(this,
-                                                    tr("打开图像"), QDir::homePath(), filter);
-
-    if (fileName.isEmpty()) {
+void MainWindow::loadNewImageFromFile(const QString &filePath)
+{
+    QPixmap pixmap;
+    if (!pixmap.load(filePath)) {
+        QMessageBox::critical(this, tr("错误"), tr("无法加载图像文件: %1").arg(filePath));
         return;
     }
+    currentBaseName = QFileInfo(filePath).baseName();
 
-    currentFilePath = fileName;
-
-    if (!originalPixmap.load(currentFilePath)) {
-        QMessageBox::critical(this, tr("错误"), tr("无法加载图像文件: %1").arg(currentFilePath));
-        originalPixmap = QPixmap();
-        currentFilePath.clear();
-        return;
+    QString newId = stagingManager->addNewImage(pixmap, currentBaseName);
+    if (!newId.isEmpty()) {
+        displayImageFromStagingArea(newId);
     }
+}
 
-    processedPixmap = originalPixmap;
+void MainWindow::displayImageFromStagingArea(const QString &imageId)
+{
+    QPixmap pixmap = stagingManager->getPixmap(imageId);
+    if (pixmap.isNull()) return;
+
+    currentStagedImageId = imageId;
+    processedPixmap = pixmap;
 
     updateDisplayImage(processedPixmap);
     fitToWindow();
     updateImageInfo();
-    ui->statusbar->showMessage(tr("成功打开: %1").arg(currentFilePath), 5000);
+
+    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
+}
+
+void MainWindow::onStagedImageDropped(const QString &imageId)
+{
+    displayImageFromStagingArea(imageId);
+    stagingManager->promoteImage(imageId);
+}
+
+void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
+{
+    QString imageId = index.data(Qt::UserRole).toString();
+    if (!imageId.isEmpty()) {
+        displayImageFromStagingArea(imageId);
+        stagingManager->promoteImage(imageId);
+    }
 }
 
 void MainWindow::on_imageSharpenButton_clicked()
 {
-    if (processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先打开一张图片。");
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
+    QImage resultImage = ImageProcessor::sharpen(processedPixmap.toImage());
+    if (resultImage.isNull()) return;
 
-    QImage sourceImage = processedPixmap.toImage();
-    QImage sharpenedImage = ImageProcessor::sharpen(sourceImage);
-
-    if (sharpenedImage.isNull()) {
-        QMessageBox::warning(this, "错误", "图像锐化失败。");
-        return;
-    }
-
-    processedPixmap = QPixmap::fromImage(sharpenedImage);
-
+    processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
+    stagingManager->updateImage(currentStagedImageId, processedPixmap);
     ui->statusbar->showMessage("图像锐化完成", 3000);
 }
 
 void MainWindow::on_imageGrayscaleButton_clicked()
 {
-    if (processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先打开一张图片。");
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
+    QImage resultImage = ImageProcessor::grayscale(processedPixmap.toImage());
+    if (resultImage.isNull()) return;
 
-    QImage sourceImage = processedPixmap.toImage();
-    QImage grayscaledImage = ImageProcessor::grayscale(sourceImage);
-
-    if (grayscaledImage.isNull()) {
-        QMessageBox::warning(this, "错误", "图像灰度化失败。");
-        return;
-    }
-
-    processedPixmap = QPixmap::fromImage(grayscaledImage);
-
+    processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
+    stagingManager->updateImage(currentStagedImageId, processedPixmap);
     ui->statusbar->showMessage("图像灰度化完成", 3000);
 }
 
-
-// <<< 新增：Canny 按钮的槽函数实现
 void MainWindow::on_cannyButton_clicked()
 {
-    if (processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先打开一张图片。");
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
+    QImage resultImage = ImageProcessor::canny(processedPixmap.toImage());
+    if (resultImage.isNull()) return;
 
-    QImage sourceImage = processedPixmap.toImage();
-    QImage edgesImage = ImageProcessor::canny(sourceImage);
-
-    if (edgesImage.isNull()) {
-        QMessageBox::warning(this, "错误", "Canny 边缘检测失败。");
-        return;
-    }
-
-    processedPixmap = QPixmap::fromImage(edgesImage);
-
+    processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
+    stagingManager->updateImage(currentStagedImageId, processedPixmap);
     ui->statusbar->showMessage("Canny 边缘检测完成", 3000);
 }
 
-
-// ... 其余函数 (updateDisplayImage, eventFilter, keyPressEvent, etc.) 保持不变 ...
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
 {
     if (pixmap.isNull()) return;
-
     imageScene->clear();
     pixmapItem = imageScene->addPixmap(pixmap);
     imageScene->setSceneRect(pixmap.rect());
@@ -170,7 +182,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         QMainWindow::keyPressEvent(event);
         return;
     }
-
     if (event->modifiers() == Qt::ControlModifier) {
         if (event->key() == Qt::Key_Plus || event->key() == Qt::Key_Equal) {
             scaleImage(scaleFactor * 1.2);
@@ -187,11 +198,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 void MainWindow::scaleImage(double newScale)
 {
     double newBoundedScale = qBound(0.1, newScale, 10.0);
-
     if (qFuzzyCompare(scaleFactor, newBoundedScale)) {
         return;
     }
-
     double factor = newBoundedScale / scaleFactor;
     ui->graphicsView->scale(factor, factor);
     scaleFactor = newBoundedScale;
@@ -201,38 +210,23 @@ void MainWindow::scaleImage(double newScale)
 void MainWindow::fitToWindow()
 {
     if (!pixmapItem) return;
-
     ui->graphicsView->fitInView(imageScene->sceneRect(), Qt::KeepAspectRatio);
     scaleFactor = ui->graphicsView->transform().m11();
 }
 
 void MainWindow::updateImageInfo()
 {
-    if (currentFilePath.isEmpty() || originalPixmap.isNull()) {
+    if (processedPixmap.isNull()) {
         ui->imageName->setText("图片名称");
         ui->imageFormat->setText("图片格式");
         ui->imageResolution->setText("图片分辨率");
         ui->imageSize->setText("图片大小");
-        ui->imageRGBColour->setText("RGB颜色");
-        ui->imageSaturation->setText("饱和度");
         return;
     }
 
-    QFileInfo fileInfo(currentFilePath);
-    ui->imageName->setText(fileInfo.fileName());
-    ui->imageFormat->setText(fileInfo.suffix().toUpper());
-    ui->imageResolution->setText(QString("%1 x %2").arg(originalPixmap.width()).arg(originalPixmap.height()));
-
-    qint64 size = fileInfo.size();
-    QString sizeString;
-    if (size > 1024 * 1024)
-        sizeString = QString::asprintf("%.2f MB", size / (1024.0 * 1024.0));
-    else if (size > 1024)
-        sizeString = QString::asprintf("%.2f KB", size / 1024.0);
-    else
-        sizeString = QString("%1 Bytes").arg(size);
-    ui->imageSize->setText(sizeString);
-
-    ui->imageRGBColour->setText("RGB颜色");
-    ui->imageSaturation->setText("饱和度");
+    ui->imageName->setText(currentBaseName);
+    // --- 关键修复：将 hasAlpha() 替换为 hasAlphaChannel() ---
+    ui->imageFormat->setText(processedPixmap.toImage().hasAlphaChannel() ? "PNG" : "JPG/BMP");
+    ui->imageResolution->setText(QString("%1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));
+    ui->imageSize->setText(QString("%1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
 }

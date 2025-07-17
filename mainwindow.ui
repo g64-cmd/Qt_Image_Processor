@@ -225,7 +225,7 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QGraphicsView" name="graphicsView">
+     <widget class="DroppableGraphicsView" name="graphicsView">
       <property name="geometry">
        <rect>
         <x>120</x>
@@ -333,6 +333,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DroppableGraphicsView</class>
+   <extends>QGraphicsView</extends>
+   <header>droppablegraphicsview.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -7,6 +7,9 @@
 #include <QGraphicsPixmapItem>
 
 class QKeyEvent;
+class QModelIndex;
+class StagingAreaManager;
+class DraggableItemModel;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,8 +31,9 @@ private slots:
     void on_actionopen_triggered();
     void on_imageSharpenButton_clicked();
     void on_imageGrayscaleButton_clicked();
-    // --- 新增槽函数，用于响应 Canny 按钮点击 ---
     void on_cannyButton_clicked();
+    void on_recentImageView_clicked(const QModelIndex &index);
+    void onStagedImageDropped(const QString &imageId);
 
 private:
     void scaleImage(double newScale);
@@ -37,14 +41,21 @@ private:
     void updateImageInfo();
     void updateDisplayImage(const QPixmap &pixmap);
 
+    // 加载逻辑重构
+    void loadNewImageFromFile(const QString &filePath);
+    void displayImageFromStagingArea(const QString &imageId);
+
     Ui::MainWindow *ui;
-    QString currentFilePath;
+    QString currentStagedImageId; // <-- 关键：追踪当前正在显示的图片ID
+    QString currentBaseName;
     double scaleFactor;
 
     QGraphicsScene *imageScene;
     QGraphicsPixmapItem *pixmapItem;
 
-    QPixmap originalPixmap;
-    QPixmap processedPixmap;
+    QPixmap processedPixmap; // 只代表当前画布上的图片
+
+    StagingAreaManager *stagingManager;
+    DraggableItemModel *stagingModel;
 };
 #endif // MAINWINDOW_H

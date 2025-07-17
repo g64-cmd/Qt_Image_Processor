@@ -31,18 +31,24 @@ win32 {
 
 SOURCES += \
     cannyprocessor.cpp \
+    draggableitemmodel.cpp \
+    droppablegraphicsview.cpp \
     grayscaleprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    stagingareamanager.cpp
 
 HEADERS += \
     cannyprocessor.h \
+    draggableitemmodel.h \
+    droppablegraphicsview.h \
     grayscaleprocessor.h \
     imageconverter.h \
     imageprocessor.h \
-    mainwindow.h
+    mainwindow.h \
+    stagingareamanager.h
 
 FORMS += \
     mainwindow.ui
