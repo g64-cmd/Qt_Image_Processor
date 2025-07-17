@@ -6,10 +6,14 @@
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
 
+// --- 向前声明 ---
 class QKeyEvent;
 class QModelIndex;
 class StagingAreaManager;
 class DraggableItemModel;
+class QUndoStack; // <-- 新增
+
+class ProcessCommand; // <-- 新增
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -18,6 +22,9 @@ QT_END_NAMESPACE
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
+    // --- 让 ProcessCommand 成为友元类，以便它能访问私有成员和函数 ---
+    friend class ProcessCommand;
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -28,7 +35,7 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
-    // --- 新增/修改的槽函数 ---
+    // “撤销/重做”的槽函数不再需要，我们将直接连接到 QUndoStack
     void on_actionopen_triggered();
     void on_actionsave_triggered();
     void on_actionsave_as_triggered();
@@ -49,12 +56,16 @@ private:
     void loadNewImageFromFile(const QString &filePath);
     void displayImageFromStagingArea(const QString &imageId);
 
-    // --- 新增的保存辅助函数 ---
     bool saveImageToFile(const QString &filePath);
+
+    // --- 新增/修改的成员和函数 ---
+    void updateImageFromCommand(const QString &imageId, const QPixmap &pixmap);
+    QString getCurrentImageId() const;
+    QPixmap getCurrentImagePixmap() const;
 
     Ui::MainWindow *ui;
     QString currentStagedImageId;
-    QString currentSavePath; // <-- 新增：追踪当前图片的保存路径
+    QString currentSavePath;
     QString currentBaseName;
     double scaleFactor;
 
@@ -65,5 +76,6 @@ private:
 
     StagingAreaManager *stagingManager;
     DraggableItemModel *stagingModel;
+    QUndoStack *undoStack; // <-- 撤销/重做 栈
 };
 #endif // MAINWINDOW_H

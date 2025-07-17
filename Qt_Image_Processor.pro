@@ -38,6 +38,7 @@ SOURCES += \
     imageprocessor.cpp \
     main.cpp \
     mainwindow.cpp \
+    processcommand.cpp \
     stagingareamanager.cpp
 
 HEADERS += \
@@ -48,6 +49,7 @@ HEADERS += \
     imageconverter.h \
     imageprocessor.h \
     mainwindow.h \
+    processcommand.h \
     stagingareamanager.h
 
 FORMS += \

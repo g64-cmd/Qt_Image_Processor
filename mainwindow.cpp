@@ -4,6 +4,7 @@
 #include "stagingareamanager.h"
 #include "draggableitemmodel.h"
 #include "droppablegraphicsview.h"
+#include "processcommand.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -13,7 +14,8 @@
 #include <QFileInfo>
 #include <QtMath>
 #include <QPainter>
-#include <QCloseEvent> // <-- 新增：用于退出事件
+#include <QCloseEvent>
+#include <QUndoStack>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     , pixmapItem(nullptr)
     , stagingManager(nullptr)
     , stagingModel(nullptr)
+    , undoStack(nullptr)
 {
     ui->setupUi(this);
 
@@ -37,7 +40,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // --- 连接菜单动作 ---
     connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
     connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
     connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
@@ -56,8 +58,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->recentImageView->setWordWrap(true);
     ui->recentImageView->setDragEnabled(true);
     connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
-
     connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
+
+    undoStack = new QUndoStack(this);
+    connect(ui->actionundo, &QAction::triggered, undoStack, &QUndoStack::undo);
+    connect(ui->actionredo, &QAction::triggered, undoStack, &QUndoStack::redo);
+    connect(undoStack, &QUndoStack::canUndoChanged, ui->actionundo, &QAction::setEnabled);
+    connect(undoStack, &QUndoStack::canRedoChanged, ui->actionredo, &QAction::setEnabled);
 }
 
 MainWindow::~MainWindow()
@@ -65,6 +72,80 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::displayImageFromStagingArea(const QString &imageId)
+{
+    QPixmap pixmap = stagingManager->getPixmap(imageId);
+    if (pixmap.isNull()) return;
+
+    undoStack->clear();
+
+    currentStagedImageId = imageId;
+    processedPixmap = pixmap;
+    currentSavePath.clear();
+
+    updateDisplayImage(processedPixmap);
+    fitToWindow();
+    updateImageInfo();
+
+    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
+}
+
+// --- 关键修复：确保槽函数只创建和推送命令 ---
+void MainWindow::on_imageSharpenButton_clicked()
+{
+    if (currentStagedImageId.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
+        return;
+    }
+    // 只推送命令，不做其他任何事
+    undoStack->push(new ProcessCommand(this, ProcessCommand::Sharpen));
+}
+
+void MainWindow::on_imageGrayscaleButton_clicked()
+{
+    if (currentStagedImageId.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
+        return;
+    }
+    // 只推送命令，不做其他任何事
+    undoStack->push(new ProcessCommand(this, ProcessCommand::Grayscale));
+}
+
+void MainWindow::on_cannyButton_clicked()
+{
+    if (currentStagedImageId.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
+        return;
+    }
+    // 只推送命令，不做其他任何事
+    undoStack->push(new ProcessCommand(this, ProcessCommand::Canny));
+}
+
+// --- 公共函数，供 Command 类调用 ---
+void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &pixmap)
+{
+    if (currentStagedImageId != imageId) {
+        displayImageFromStagingArea(imageId);
+    }
+
+    processedPixmap = pixmap;
+    updateDisplayImage(processedPixmap);
+    stagingManager->updateImage(imageId, processedPixmap);
+    currentSavePath.clear();
+    updateImageInfo();
+}
+
+QString MainWindow::getCurrentImageId() const
+{
+    return currentStagedImageId;
+}
+
+QPixmap MainWindow::getCurrentImagePixmap() const
+{
+    return processedPixmap;
+}
+
+// ... 其余所有函数都保持不变 ...
 void MainWindow::on_actionopen_triggered()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("打开图像"), "", "Image Files (*.png *.jpg *.bmp)");
@@ -73,15 +154,12 @@ void MainWindow::on_actionopen_triggered()
     }
 }
 
-// --- 新增：保存、另存为、退出 的槽函数实现 ---
-
 void MainWindow::on_actionsave_triggered()
 {
     if (currentStagedImageId.isEmpty()) {
         QMessageBox::information(this, "提示", "当前没有可保存的图片。");
         return;
     }
-    // 如果之前没有保存过，则行为和“另存为”一样
     if (currentSavePath.isEmpty()) {
         on_actionsave_as_triggered();
     } else {
@@ -98,14 +176,13 @@ void MainWindow::on_actionsave_as_triggered()
     QString fileName = QFileDialog::getSaveFileName(this, "另存为", currentBaseName, "PNG 文件 (*.png);;JPEG 文件 (*.jpg *.jpeg)");
     if (!fileName.isEmpty()) {
         if (saveImageToFile(fileName)) {
-            currentSavePath = fileName; // 保存成功后，更新当前保存路径
+            currentSavePath = fileName;
         }
     }
 }
 
 void MainWindow::on_actionexit_triggered()
 {
-    // close() 会触发 closeEvent，可以在那里添加“是否保存”的逻辑
     this->close();
 }
 
@@ -122,7 +199,6 @@ bool MainWindow::saveImageToFile(const QString &filePath)
     }
 }
 
-
 void MainWindow::loadNewImageFromFile(const QString &filePath)
 {
     QPixmap pixmap;
@@ -131,28 +207,12 @@ void MainWindow::loadNewImageFromFile(const QString &filePath)
         return;
     }
     currentBaseName = QFileInfo(filePath).baseName();
-    currentSavePath = filePath; // 打开新文件时，将其路径作为默认保存路径
+    currentSavePath = filePath;
 
     QString newId = stagingManager->addNewImage(pixmap, currentBaseName);
     if (!newId.isEmpty()) {
         displayImageFromStagingArea(newId);
     }
-}
-
-void MainWindow::displayImageFromStagingArea(const QString &imageId)
-{
-    QPixmap pixmap = stagingManager->getPixmap(imageId);
-    if (pixmap.isNull()) return;
-
-    currentStagedImageId = imageId;
-    processedPixmap = pixmap;
-    currentSavePath.clear(); // 从暂存区加载时，清除保存路径，强制用户“另存为”
-
-    updateDisplayImage(processedPixmap);
-    fitToWindow();
-    updateImageInfo();
-
-    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
 }
 
 void MainWindow::onStagedImageDropped(const QString &imageId)
@@ -168,54 +228,6 @@ void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
         displayImageFromStagingArea(imageId);
         stagingManager->promoteImage(imageId);
     }
-}
-
-void MainWindow::on_imageSharpenButton_clicked()
-{
-    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
-        return;
-    }
-    QImage resultImage = ImageProcessor::sharpen(processedPixmap.toImage());
-    if (resultImage.isNull()) return;
-
-    processedPixmap = QPixmap::fromImage(resultImage);
-    updateDisplayImage(processedPixmap);
-    stagingManager->updateImage(currentStagedImageId, processedPixmap);
-    currentSavePath.clear(); // 图像被修改，需要另存为
-    ui->statusbar->showMessage("图像锐化完成", 3000);
-}
-
-void MainWindow::on_imageGrayscaleButton_clicked()
-{
-    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
-        return;
-    }
-    QImage resultImage = ImageProcessor::grayscale(processedPixmap.toImage());
-    if (resultImage.isNull()) return;
-
-    processedPixmap = QPixmap::fromImage(resultImage);
-    updateDisplayImage(processedPixmap);
-    stagingManager->updateImage(currentStagedImageId, processedPixmap);
-    currentSavePath.clear(); // 图像被修改，需要另存为
-    ui->statusbar->showMessage("图像灰度化完成", 3000);
-}
-
-void MainWindow::on_cannyButton_clicked()
-{
-    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
-        return;
-    }
-    QImage resultImage = ImageProcessor::canny(processedPixmap.toImage());
-    if (resultImage.isNull()) return;
-
-    processedPixmap = QPixmap::fromImage(resultImage);
-    updateDisplayImage(processedPixmap);
-    stagingManager->updateImage(currentStagedImageId, processedPixmap);
-    currentSavePath.clear(); // 图像被修改，需要另存为
-    ui->statusbar->showMessage("Canny 边缘检测完成", 3000);
 }
 
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
