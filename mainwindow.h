@@ -3,13 +3,9 @@
 
 #include <QMainWindow>
 #include <QPixmap>
-
-// --- 新增的头文件 ---
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
-// --- 头文件结束 ---
 
-// 向前声明，避免包含整个头文件
 class QKeyEvent;
 
 QT_BEGIN_NAMESPACE
@@ -25,31 +21,30 @@ public:
     ~MainWindow();
 
 protected:
-    // 重写事件过滤器来处理 graphicsView 上的滚轮事件
     bool eventFilter(QObject *watched, QEvent *event) override;
-    // 重写键盘按下事件来处理快捷键
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
-    // 响应“打开”菜单动作的槽函数
     void on_actionopen_triggered();
+    // --- 新增槽函数，用于响应锐化按钮点击 ---
+    void on_imageSharpenButton_clicked();
 
 private:
-    // 缩放图像
     void scaleImage(double newScale);
-    // 使图像适应窗口大小
     void fitToWindow();
-    // 更新底部图片信息面板
     void updateImageInfo();
+    // --- 新增函数，用于更新显示 ---
+    void updateDisplayImage(const QPixmap &pixmap);
 
     Ui::MainWindow *ui;
-    QPixmap originalPixmap;    // 存储原始加载的图像
-    QString currentFilePath;   // 存储当前文件的路径
-    double scaleFactor;        // 当前的缩放比例
+    QString currentFilePath;
+    double scaleFactor;
 
-    // --- 替换为 Graphics View 相关的成员 ---
-    QGraphicsScene *imageScene;         // 场景，用于管理图像项
-    QGraphicsPixmapItem *pixmapItem;    // 图像项，用于在场景中显示图像
-    // --- 成员变量修改结束 ---
+    QGraphicsScene *imageScene;
+    QGraphicsPixmapItem *pixmapItem;
+
+    // --- 新增/修改的成员变量 ---
+    QPixmap originalPixmap;    // 存储原始加载的图像
+    QPixmap processedPixmap;   // 存储当前处理后的图像
 };
 #endif // MAINWINDOW_H
