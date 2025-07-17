@@ -28,7 +28,12 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
+    // --- 新增/修改的槽函数 ---
     void on_actionopen_triggered();
+    void on_actionsave_triggered();
+    void on_actionsave_as_triggered();
+    void on_actionexit_triggered();
+
     void on_imageSharpenButton_clicked();
     void on_imageGrayscaleButton_clicked();
     void on_cannyButton_clicked();
@@ -41,19 +46,22 @@ private:
     void updateImageInfo();
     void updateDisplayImage(const QPixmap &pixmap);
 
-    // 加载逻辑重构
     void loadNewImageFromFile(const QString &filePath);
     void displayImageFromStagingArea(const QString &imageId);
 
+    // --- 新增的保存辅助函数 ---
+    bool saveImageToFile(const QString &filePath);
+
     Ui::MainWindow *ui;
-    QString currentStagedImageId; // <-- 关键：追踪当前正在显示的图片ID
+    QString currentStagedImageId;
+    QString currentSavePath; // <-- 新增：追踪当前图片的保存路径
     QString currentBaseName;
     double scaleFactor;
 
     QGraphicsScene *imageScene;
     QGraphicsPixmapItem *pixmapItem;
 
-    QPixmap processedPixmap; // 只代表当前画布上的图片
+    QPixmap processedPixmap;
 
     StagingAreaManager *stagingManager;
     DraggableItemModel *stagingModel;

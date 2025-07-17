@@ -13,6 +13,7 @@
 #include <QFileInfo>
 #include <QtMath>
 #include <QPainter>
+#include <QCloseEvent> // <-- 新增：用于退出事件
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -35,6 +36,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
+
+    // --- 连接菜单动作 ---
+    connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
+    connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
+    connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
+    connect(ui->actionexit, &QAction::triggered, this, &MainWindow::on_actionexit_triggered);
 
     connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
     connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
@@ -66,6 +73,56 @@ void MainWindow::on_actionopen_triggered()
     }
 }
 
+// --- 新增：保存、另存为、退出 的槽函数实现 ---
+
+void MainWindow::on_actionsave_triggered()
+{
+    if (currentStagedImageId.isEmpty()) {
+        QMessageBox::information(this, "提示", "当前没有可保存的图片。");
+        return;
+    }
+    // 如果之前没有保存过，则行为和“另存为”一样
+    if (currentSavePath.isEmpty()) {
+        on_actionsave_as_triggered();
+    } else {
+        saveImageToFile(currentSavePath);
+    }
+}
+
+void MainWindow::on_actionsave_as_triggered()
+{
+    if (currentStagedImageId.isEmpty()) {
+        QMessageBox::information(this, "提示", "当前没有可保存的图片。");
+        return;
+    }
+    QString fileName = QFileDialog::getSaveFileName(this, "另存为", currentBaseName, "PNG 文件 (*.png);;JPEG 文件 (*.jpg *.jpeg)");
+    if (!fileName.isEmpty()) {
+        if (saveImageToFile(fileName)) {
+            currentSavePath = fileName; // 保存成功后，更新当前保存路径
+        }
+    }
+}
+
+void MainWindow::on_actionexit_triggered()
+{
+    // close() 会触发 closeEvent，可以在那里添加“是否保存”的逻辑
+    this->close();
+}
+
+bool MainWindow::saveImageToFile(const QString &filePath)
+{
+    if (processedPixmap.isNull()) return false;
+
+    if (processedPixmap.save(filePath)) {
+        ui->statusbar->showMessage(tr("图像已成功保存至 %1").arg(filePath), 5000);
+        return true;
+    } else {
+        QMessageBox::critical(this, "错误", tr("无法保存图像至 %1").arg(filePath));
+        return false;
+    }
+}
+
+
 void MainWindow::loadNewImageFromFile(const QString &filePath)
 {
     QPixmap pixmap;
@@ -74,6 +131,7 @@ void MainWindow::loadNewImageFromFile(const QString &filePath)
         return;
     }
     currentBaseName = QFileInfo(filePath).baseName();
+    currentSavePath = filePath; // 打开新文件时，将其路径作为默认保存路径
 
     QString newId = stagingManager->addNewImage(pixmap, currentBaseName);
     if (!newId.isEmpty()) {
@@ -88,6 +146,7 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
 
     currentStagedImageId = imageId;
     processedPixmap = pixmap;
+    currentSavePath.clear(); // 从暂存区加载时，清除保存路径，强制用户“另存为”
 
     updateDisplayImage(processedPixmap);
     fitToWindow();
@@ -123,6 +182,7 @@ void MainWindow::on_imageSharpenButton_clicked()
     processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
     stagingManager->updateImage(currentStagedImageId, processedPixmap);
+    currentSavePath.clear(); // 图像被修改，需要另存为
     ui->statusbar->showMessage("图像锐化完成", 3000);
 }
 
@@ -138,6 +198,7 @@ void MainWindow::on_imageGrayscaleButton_clicked()
     processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
     stagingManager->updateImage(currentStagedImageId, processedPixmap);
+    currentSavePath.clear(); // 图像被修改，需要另存为
     ui->statusbar->showMessage("图像灰度化完成", 3000);
 }
 
@@ -153,6 +214,7 @@ void MainWindow::on_cannyButton_clicked()
     processedPixmap = QPixmap::fromImage(resultImage);
     updateDisplayImage(processedPixmap);
     stagingManager->updateImage(currentStagedImageId, processedPixmap);
+    currentSavePath.clear(); // 图像被修改，需要另存为
     ui->statusbar->showMessage("Canny 边缘检测完成", 3000);
 }
 
@@ -225,7 +287,6 @@ void MainWindow::updateImageInfo()
     }
 
     ui->imageName->setText(currentBaseName);
-    // --- 关键修复：将 hasAlpha() 替换为 hasAlphaChannel() ---
     ui->imageFormat->setText(processedPixmap.toImage().hasAlphaChannel() ? "PNG" : "JPG/BMP");
     ui->imageResolution->setText(QString("%1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));
     ui->imageSize->setText(QString("%1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
