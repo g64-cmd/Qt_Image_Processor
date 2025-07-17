@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "imageprocessor.h" // 包含图像处理器头文件
+#include "imageprocessor.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -31,10 +31,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // 连接信号和槽 (如果使用自动连接，这部分是可选的，但写出来更清晰)
     connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
-    // <<< 新增：连接灰度化按钮的信号到槽
     connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
+    // <<< 新增：连接 Canny 按钮的信号到槽
+    connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
 }
 
 MainWindow::~MainWindow()
@@ -42,6 +42,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// ... on_actionopen_triggered, on_imageSharpenButton_clicked, on_imageGrayscaleButton_clicked 保持不变 ...
 void MainWindow::on_actionopen_triggered()
 {
     QList<QByteArray> supportedFormats = QImageReader::supportedImageFormats();
@@ -96,7 +97,6 @@ void MainWindow::on_imageSharpenButton_clicked()
     ui->statusbar->showMessage("图像锐化完成", 3000);
 }
 
-// <<< 新增：灰度化按钮的槽函数实现
 void MainWindow::on_imageGrayscaleButton_clicked()
 {
     if (processedPixmap.isNull()) {
@@ -104,7 +104,6 @@ void MainWindow::on_imageGrayscaleButton_clicked()
         return;
     }
 
-    // 将当前处理后的图像转换为 QImage 进行处理
     QImage sourceImage = processedPixmap.toImage();
     QImage grayscaledImage = ImageProcessor::grayscale(sourceImage);
 
@@ -113,15 +112,37 @@ void MainWindow::on_imageGrayscaleButton_clicked()
         return;
     }
 
-    // 更新处理后的图像
     processedPixmap = QPixmap::fromImage(grayscaledImage);
 
-    // 更新显示
     updateDisplayImage(processedPixmap);
     ui->statusbar->showMessage("图像灰度化完成", 3000);
 }
 
 
+// <<< 新增：Canny 按钮的槽函数实现
+void MainWindow::on_cannyButton_clicked()
+{
+    if (processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先打开一张图片。");
+        return;
+    }
+
+    QImage sourceImage = processedPixmap.toImage();
+    QImage edgesImage = ImageProcessor::canny(sourceImage);
+
+    if (edgesImage.isNull()) {
+        QMessageBox::warning(this, "错误", "Canny 边缘检测失败。");
+        return;
+    }
+
+    processedPixmap = QPixmap::fromImage(edgesImage);
+
+    updateDisplayImage(processedPixmap);
+    ui->statusbar->showMessage("Canny 边缘检测完成", 3000);
+}
+
+
+// ... 其余函数 (updateDisplayImage, eventFilter, keyPressEvent, etc.) 保持不变 ...
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
 {
     if (pixmap.isNull()) return;
@@ -130,9 +151,6 @@ void MainWindow::updateDisplayImage(const QPixmap &pixmap)
     pixmapItem = imageScene->addPixmap(pixmap);
     imageScene->setSceneRect(pixmap.rect());
 }
-
-
-// --- 以下函数保持不变 ---
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {

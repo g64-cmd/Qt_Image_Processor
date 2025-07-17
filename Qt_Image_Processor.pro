@@ -30,6 +30,7 @@ win32 {
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    cannyprocessor.cpp \
     grayscaleprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
@@ -37,6 +38,7 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    cannyprocessor.h \
     grayscaleprocessor.h \
     imageconverter.h \
     imageprocessor.h \

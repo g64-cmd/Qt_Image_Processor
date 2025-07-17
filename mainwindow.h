@@ -27,8 +27,9 @@ protected:
 private slots:
     void on_actionopen_triggered();
     void on_imageSharpenButton_clicked();
-    // --- 新增槽函数，用于响应灰度化按钮点击 ---
     void on_imageGrayscaleButton_clicked();
+    // --- 新增槽函数，用于响应 Canny 按钮点击 ---
+    void on_cannyButton_clicked();
 
 private:
     void scaleImage(double newScale);
