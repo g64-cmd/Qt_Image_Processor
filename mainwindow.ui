@@ -33,10 +33,10 @@
      <widget class="QFrame" name="functionPanel">
       <property name="geometry">
        <rect>
-        <x>-1</x>
-        <y>-1</y>
-        <width>121</width>
-        <height>421</height>
+        <x>0</x>
+        <y>0</y>
+        <width>120</width>
+        <height>420</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -130,9 +130,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>1</y>
-         <width>131</width>
-         <height>421</height>
+         <y>0</y>
+         <width>130</width>
+         <height>420</height>
         </rect>
        </property>
       </widget>
@@ -141,9 +141,9 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>419</y>
-        <width>791</width>
-        <height>111</height>
+        <y>420</y>
+        <width>790</width>
+        <height>110</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -225,47 +225,15 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QScrollArea" name="imageScrollDisplay">
+     <widget class="QGraphicsView" name="graphicsView">
       <property name="geometry">
        <rect>
-        <x>119</x>
-        <y>-1</y>
-        <width>541</width>
-        <height>421</height>
+        <x>120</x>
+        <y>0</y>
+        <width>540</width>
+        <height>420</height>
        </rect>
       </property>
-      <property name="widgetResizable">
-       <bool>true</bool>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignmentFlag::AlignCenter</set>
-      </property>
-      <widget class="QWidget" name="scrollAreaWidgetContents_2">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>539</width>
-         <height>419</height>
-        </rect>
-       </property>
-       <widget class="QLabel" name="imageDisplayLabel">
-        <property name="geometry">
-         <rect>
-          <x>3</x>
-          <y>5</y>
-          <width>531</width>
-          <height>411</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>图片显示</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignmentFlag::AlignCenter</set>
-        </property>
-       </widget>
-      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="videoTab">
