@@ -5,7 +5,7 @@
 #include "draggableitemmodel.h"
 #include "droppablegraphicsview.h"
 #include "processcommand.h"
-
+#include "stitcherdialog.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QImageReader>
@@ -28,7 +28,6 @@ MainWindow::MainWindow(QWidget *parent)
     , undoStack(nullptr)
 {
     ui->setupUi(this);
-
     imageScene = new QGraphicsScene(this);
     ui->graphicsView->setScene(imageScene);
     ui->graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
@@ -39,16 +38,14 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
-
     connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
     connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
     connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
     connect(ui->actionexit, &QAction::triggered, this, &MainWindow::on_actionexit_triggered);
-
     connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
     connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
     connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
-
+    connect(ui->imageStitchButton, &QPushButton::clicked, this, &MainWindow::on_imageStitchButton_clicked);
     stagingModel = new DraggableItemModel(this);
     stagingManager = new StagingAreaManager(stagingModel, this);
     ui->recentImageView->setModel(stagingModel);
@@ -59,93 +56,95 @@ MainWindow::MainWindow(QWidget *parent)
     ui->recentImageView->setDragEnabled(true);
     connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
     connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
-
     undoStack = new QUndoStack(this);
     connect(ui->actionundo, &QAction::triggered, undoStack, &QUndoStack::undo);
     connect(ui->actionredo, &QAction::triggered, undoStack, &QUndoStack::redo);
     connect(undoStack, &QUndoStack::canUndoChanged, ui->actionundo, &QAction::setEnabled);
     connect(undoStack, &QUndoStack::canRedoChanged, ui->actionredo, &QAction::setEnabled);
 }
-
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_imageStitchButton_clicked()
+{
+    if (stagingManager->getImageCount() == 0) {
+        QMessageBox::information(this, "提示", "暂存区中没有图片可用于拼接。");
+        return;
+    }
+    StitcherDialog dialog(stagingManager, stagingModel, this);
+
+    // --- 关键修改：检查对话框的返回结果 ---
+    if (dialog.exec() == QDialog::Accepted) {
+        // 如果用户点击了"Save"，则获取最终图片
+        QPixmap finalImage = dialog.getFinalImage();
+        if (!finalImage.isNull()) {
+            // 将拼接好的图片添加到暂存区，并显示在主窗口
+            QString newId = stagingManager->addNewImage(finalImage, "stitched_image");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+            }
+        }
+    }
 }
 
 void MainWindow::displayImageFromStagingArea(const QString &imageId)
 {
     QPixmap pixmap = stagingManager->getPixmap(imageId);
     if (pixmap.isNull()) return;
-
     undoStack->clear();
-
     currentStagedImageId = imageId;
     processedPixmap = pixmap;
     currentSavePath.clear();
-
     updateDisplayImage(processedPixmap);
     fitToWindow();
     updateImageInfo();
-
     ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
 }
-
-// --- 关键修复：确保槽函数只创建和推送命令 ---
 void MainWindow::on_imageSharpenButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
         QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
-    // 只推送命令，不做其他任何事
     undoStack->push(new ProcessCommand(this, ProcessCommand::Sharpen));
 }
-
 void MainWindow::on_imageGrayscaleButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
         QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
-    // 只推送命令，不做其他任何事
     undoStack->push(new ProcessCommand(this, ProcessCommand::Grayscale));
 }
-
 void MainWindow::on_cannyButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
         QMessageBox::information(this, "提示", "请先从暂存区选择一张图片。");
         return;
     }
-    // 只推送命令，不做其他任何事
     undoStack->push(new ProcessCommand(this, ProcessCommand::Canny));
 }
-
-// --- 公共函数，供 Command 类调用 ---
 void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &pixmap)
 {
     if (currentStagedImageId != imageId) {
         displayImageFromStagingArea(imageId);
     }
-
     processedPixmap = pixmap;
     updateDisplayImage(processedPixmap);
     stagingManager->updateImage(imageId, processedPixmap);
     currentSavePath.clear();
     updateImageInfo();
 }
-
 QString MainWindow::getCurrentImageId() const
 {
     return currentStagedImageId;
 }
-
 QPixmap MainWindow::getCurrentImagePixmap() const
 {
     return processedPixmap;
 }
-
-// ... 其余所有函数都保持不变 ...
 void MainWindow::on_actionopen_triggered()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("打开图像"), "", "Image Files (*.png *.jpg *.bmp)");
@@ -153,7 +152,6 @@ void MainWindow::on_actionopen_triggered()
         loadNewImageFromFile(fileName);
     }
 }
-
 void MainWindow::on_actionsave_triggered()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -166,7 +164,6 @@ void MainWindow::on_actionsave_triggered()
         saveImageToFile(currentSavePath);
     }
 }
-
 void MainWindow::on_actionsave_as_triggered()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -180,16 +177,13 @@ void MainWindow::on_actionsave_as_triggered()
         }
     }
 }
-
 void MainWindow::on_actionexit_triggered()
 {
     this->close();
 }
-
 bool MainWindow::saveImageToFile(const QString &filePath)
 {
     if (processedPixmap.isNull()) return false;
-
     if (processedPixmap.save(filePath)) {
         ui->statusbar->showMessage(tr("图像已成功保存至 %1").arg(filePath), 5000);
         return true;
@@ -198,7 +192,6 @@ bool MainWindow::saveImageToFile(const QString &filePath)
         return false;
     }
 }
-
 void MainWindow::loadNewImageFromFile(const QString &filePath)
 {
     QPixmap pixmap;
@@ -208,28 +201,24 @@ void MainWindow::loadNewImageFromFile(const QString &filePath)
     }
     currentBaseName = QFileInfo(filePath).baseName();
     currentSavePath = filePath;
-
     QString newId = stagingManager->addNewImage(pixmap, currentBaseName);
     if (!newId.isEmpty()) {
         displayImageFromStagingArea(newId);
     }
 }
-
 void MainWindow::onStagedImageDropped(const QString &imageId)
 {
-    displayImageFromStagingArea(imageId);
     stagingManager->promoteImage(imageId);
+    displayImageFromStagingArea(imageId);
 }
-
 void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
 {
     QString imageId = index.data(Qt::UserRole).toString();
     if (!imageId.isEmpty()) {
-        displayImageFromStagingArea(imageId);
         stagingManager->promoteImage(imageId);
+        displayImageFromStagingArea(imageId);
     }
 }
-
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
 {
     if (pixmap.isNull()) return;
@@ -237,7 +226,6 @@ void MainWindow::updateDisplayImage(const QPixmap &pixmap)
     pixmapItem = imageScene->addPixmap(pixmap);
     imageScene->setSceneRect(pixmap.rect());
 }
-
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == ui->graphicsView->viewport() && event->type() == QEvent::Wheel && pixmapItem) {
@@ -249,7 +237,6 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     }
     return QMainWindow::eventFilter(watched, event);
 }
-
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (!pixmapItem) {
@@ -268,7 +255,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         QMainWindow::keyPressEvent(event);
     }
 }
-
 void MainWindow::scaleImage(double newScale)
 {
     double newBoundedScale = qBound(0.1, newScale, 10.0);
@@ -280,14 +266,12 @@ void MainWindow::scaleImage(double newScale)
     scaleFactor = newBoundedScale;
     ui->statusbar->showMessage(QString("缩放比例: %1%").arg(int(scaleFactor * 100)));
 }
-
 void MainWindow::fitToWindow()
 {
     if (!pixmapItem) return;
     ui->graphicsView->fitInView(imageScene->sceneRect(), Qt::KeepAspectRatio);
     scaleFactor = ui->graphicsView->transform().m11();
 }
-
 void MainWindow::updateImageInfo()
 {
     if (processedPixmap.isNull()) {
@@ -297,7 +281,6 @@ void MainWindow::updateImageInfo()
         ui->imageSize->setText("图片大小");
         return;
     }
-
     ui->imageName->setText(currentBaseName);
     ui->imageFormat->setText(processedPixmap.toImage().hasAlphaChannel() ? "PNG" : "JPG/BMP");
     ui->imageResolution->setText(QString("%1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));

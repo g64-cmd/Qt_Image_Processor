@@ -41,7 +41,6 @@ void StagingAreaManager::updateImage(const QString &id, const QPixmap &newPixmap
 
     if (foundIndex == -1) return;
 
-    // 获取项目，更新它，然后移动到列表顶部
     StagedImage item = stagedImages.takeAt(foundIndex);
     item.pixmap = newPixmap;
     stagedImages.prepend(item);
@@ -59,16 +58,13 @@ void StagingAreaManager::promoteImage(const QString &id)
         }
     }
 
-    // 如果未找到或已在顶部，则不执行任何操作
     if (foundIndex <= 0) return;
 
-    // 移动到列表顶部
     StagedImage item = stagedImages.takeAt(foundIndex);
     stagedImages.prepend(item);
 
     updateModel();
 }
-
 
 QPixmap StagingAreaManager::getPixmap(const QString &id) const
 {
@@ -79,6 +75,13 @@ QPixmap StagingAreaManager::getPixmap(const QString &id) const
     }
     return QPixmap();
 }
+
+// --- 新增函数实现 ---
+int StagingAreaManager::getImageCount() const
+{
+    return stagedImages.size();
+}
+
 
 void StagingAreaManager::updateModel()
 {

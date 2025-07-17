@@ -11,9 +11,9 @@ class QKeyEvent;
 class QModelIndex;
 class StagingAreaManager;
 class DraggableItemModel;
-class QUndoStack; // <-- 新增
+class QUndoStack;
 
-class ProcessCommand; // <-- 新增
+class ProcessCommand;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -23,7 +23,6 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    // --- 让 ProcessCommand 成为友元类，以便它能访问私有成员和函数 ---
     friend class ProcessCommand;
 
 public:
@@ -35,7 +34,6 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
-    // “撤销/重做”的槽函数不再需要，我们将直接连接到 QUndoStack
     void on_actionopen_triggered();
     void on_actionsave_triggered();
     void on_actionsave_as_triggered();
@@ -44,6 +42,7 @@ private slots:
     void on_imageSharpenButton_clicked();
     void on_imageGrayscaleButton_clicked();
     void on_cannyButton_clicked();
+    void on_imageStitchButton_clicked(); // <-- 关键修复：确保这个槽函数已声明
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
 
@@ -58,7 +57,6 @@ private:
 
     bool saveImageToFile(const QString &filePath);
 
-    // --- 新增/修改的成员和函数 ---
     void updateImageFromCommand(const QString &imageId, const QPixmap &pixmap);
     QString getCurrentImageId() const;
     QPixmap getCurrentImagePixmap() const;
@@ -76,6 +74,6 @@ private:
 
     StagingAreaManager *stagingManager;
     DraggableItemModel *stagingModel;
-    QUndoStack *undoStack; // <-- 撤销/重做 栈
+    QUndoStack *undoStack;
 };
 #endif // MAINWINDOW_H

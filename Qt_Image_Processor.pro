@@ -36,10 +36,12 @@ SOURCES += \
     grayscaleprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
+    interactivepixmapitem.cpp \
     main.cpp \
     mainwindow.cpp \
     processcommand.cpp \
-    stagingareamanager.cpp
+    stagingareamanager.cpp \
+    stitcherdialog.cpp
 
 HEADERS += \
     cannyprocessor.h \
@@ -48,12 +50,15 @@ HEADERS += \
     grayscaleprocessor.h \
     imageconverter.h \
     imageprocessor.h \
+    interactivepixmapitem.h \
     mainwindow.h \
     processcommand.h \
-    stagingareamanager.h
+    stagingareamanager.h \
+    stitcherdialog.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    stitcherdialog.ui
 
 TRANSLATIONS += \
     Qt_Image_Processor_zh_CN.ts
