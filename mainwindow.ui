@@ -36,7 +36,7 @@
         <x>0</x>
         <y>0</y>
         <width>120</width>
-        <height>420</height>
+        <height>391</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -63,7 +63,7 @@
        <item>
         <widget class="QPushButton" name="cannyButton">
          <property name="text">
-          <string>Canny边缘检测</string>
+          <string>边缘检测</string>
          </property>
         </widget>
        </item>
@@ -117,7 +117,7 @@
         <x>660</x>
         <y>0</y>
         <width>131</width>
-        <height>421</height>
+        <height>391</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -131,123 +131,10 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>130</width>
-         <height>420</height>
+         <width>131</width>
+         <height>391</height>
         </rect>
        </property>
-      </widget>
-     </widget>
-     <widget class="QFrame" name="imageAttributesPanel">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>420</y>
-        <width>341</width>
-        <height>111</height>
-       </rect>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::Shape::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Shadow::Raised</enum>
-      </property>
-      <widget class="QWidget" name="layoutWidget">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>9</y>
-         <width>331</width>
-         <height>101</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <item>
-           <widget class="QLabel" name="imageNameLabel">
-            <property name="text">
-             <string>图片名称：</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="imageResolutionLabel">
-            <property name="text">
-             <string>分辨率：</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="imageSizeLabel">
-            <property name="text">
-             <string>大小：</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QGridLayout" name="gridLayout">
-          <item row="0" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>亮度</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QSlider" name="brightnessSlider">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>饱和度</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QSlider" name="saturationSlider">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>对比度</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QSlider" name="contrastSlider">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="2">
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>色相</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QSlider" name="hueSlider">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
       </widget>
      </widget>
      <widget class="DroppableGraphicsView" name="graphicsView">
@@ -256,40 +143,40 @@
         <x>120</x>
         <y>0</y>
         <width>540</width>
-        <height>420</height>
+        <height>391</height>
        </rect>
       </property>
      </widget>
      <widget class="HistogramWidget" name="histogramWidget" native="true">
       <property name="geometry">
        <rect>
-        <x>362</x>
-        <y>431</y>
+        <x>350</x>
+        <y>400</y>
         <width>221</width>
-        <height>99</height>
+        <height>111</height>
        </rect>
       </property>
      </widget>
      <widget class="QLabel" name="colorSwatchLabel">
       <property name="geometry">
        <rect>
-        <x>600</x>
-        <y>460</y>
-        <width>30</width>
+        <x>580</x>
+        <y>440</y>
+        <width>31</width>
         <height>30</height>
        </rect>
       </property>
       <property name="text">
-       <string>颜色</string>
+       <string/>
       </property>
      </widget>
      <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
-        <x>650</x>
-        <y>430</y>
-        <width>131</width>
-        <height>91</height>
+        <x>620</x>
+        <y>400</y>
+        <width>161</width>
+        <height>101</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -313,6 +200,103 @@
           <string>Pos:</string>
          </property>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="layoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>400</y>
+        <width>331</width>
+        <height>111</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="imageNameLabel">
+           <property name="text">
+            <string>图片名称：</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="imageResolutionLabel">
+           <property name="text">
+            <string>分辨率：</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="imageSizeLabel">
+           <property name="text">
+            <string>大小：</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>亮度</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSlider" name="brightnessSlider">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>饱和度</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QSlider" name="saturationSlider">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>对比度</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSlider" name="contrastSlider">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>色相</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QSlider" name="hueSlider">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>

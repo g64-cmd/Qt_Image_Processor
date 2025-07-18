@@ -38,6 +38,27 @@ MainWindow::MainWindow(QWidget *parent)
     , currentHue(0)
 {
     ui->setupUi(this);
+    // 在构造函数的 ui->setupUi(this); 之后添加
+    ui->imageSharpenButton->setIcon(QIcon(":/icons/resources/icons/edit-3.svg")); // 请替换为您下载的实际文件名
+    ui->imageGrayscaleButton->setIcon(QIcon(":/icons/resources/icons/circle.svg"));
+    ui->cannyButton->setIcon(QIcon(":/icons/resources/icons/crop.svg"));
+    ui->imageStitchButton->setIcon(QIcon(":/icons/resources/icons/grid.svg"));
+    ui->imageBlendButton->setIcon(QIcon(":/icons/resources/icons/layers.svg"));
+    ui->textureMigrationButton->setIcon(QIcon(":/icons/resources/icons/image.svg"));
+    ui->beautyButton->setIcon(QIcon(":/icons/resources/icons/smile.svg"));
+    ui->gamma->setIcon(QIcon(":/icons/resources/icons/sun.svg"));
+
+    // 调整图标大小，使其看起来更精致
+    const QSize iconSize(20, 20); // 定义一个统一的图标尺寸
+    ui->imageSharpenButton->setIconSize(iconSize);
+    ui->imageGrayscaleButton->setIconSize(iconSize);
+    ui->cannyButton->setIconSize(iconSize);
+    ui->imageStitchButton->setIconSize(iconSize);
+    ui->imageBlendButton->setIconSize(iconSize);
+    ui->textureMigrationButton->setIconSize(iconSize);
+    ui->beautyButton->setIconSize(iconSize);
+    ui->gamma->setIconSize(iconSize);
+
 
     imageScene = new QGraphicsScene(this);
     ui->graphicsView->setScene(imageScene);
