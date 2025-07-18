@@ -1,12 +1,14 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "imageprocessor.h"
+#include "beautydialog.h" // <-- 1. 包含新对话框的头文件
 #include "stagingareamanager.h"
 #include "draggableitemmodel.h"
 #include "droppablegraphicsview.h"
 #include "processcommand.h"
 #include "stitcherdialog.h"
-#include "imageblenddialog.h" // 包含融合对话框的头文件
+#include "imageblenddialog.h"
+#include "imagetexturetransferdialog.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -52,7 +54,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->recentImageView->setWordWrap(true);
     ui->recentImageView->setDragEnabled(true);
 
-    // 只保留必要的、非自动连接的 connect 语句
     connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
     connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
 
@@ -97,6 +98,26 @@ void MainWindow::on_imageBlendButton_clicked()
         QPixmap finalImage = dialog.getBlendedImage();
         if (!finalImage.isNull()) {
             QString newId = stagingManager->addNewImage(finalImage, "blended_image");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+            }
+        }
+    }
+}
+
+void MainWindow::on_textureMigrationButton_clicked()
+{
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先在主窗口中打开一张内容图。");
+        return;
+    }
+
+    ImageTextureTransferDialog dialog(processedPixmap, this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QPixmap finalImage = dialog.getResultImage();
+        if (!finalImage.isNull()) {
+            QString newId = stagingManager->addNewImage(finalImage, "texture_transfer_result");
             if (!newId.isEmpty()) {
                 displayImageFromStagingArea(newId);
             }
@@ -195,6 +216,25 @@ void MainWindow::on_actionsave_as_triggered()
 void MainWindow::on_actionexit_triggered()
 {
     this->close();
+}
+void MainWindow::on_beautyButton_clicked()
+{
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先打开一张带有人脸的图片。");
+        return;
+    }
+
+    BeautyDialog dialog(processedPixmap, this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QPixmap finalImage = dialog.getResultImage();
+        if (!finalImage.isNull()) {
+            QString newId = stagingManager->addNewImage(finalImage, "beautified_image");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+            }
+        }
+    }
 }
 bool MainWindow::saveImageToFile(const QString &filePath)
 {

@@ -30,6 +30,8 @@ win32 {
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    beautydialog.cpp \
+    beautyprocessor.cpp \
     cannyprocessor.cpp \
     draggableitemmodel.cpp \
     droppablegraphicsview.cpp \
@@ -38,6 +40,8 @@ SOURCES += \
     imageblendprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
+    imagetexturetransferdialog.cpp \
+    imagetexturetransferprocessor.cpp \
     interactivepixmapitem.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -46,6 +50,8 @@ SOURCES += \
     stitcherdialog.cpp
 
 HEADERS += \
+    beautydialog.h \
+    beautyprocessor.h \
     cannyprocessor.h \
     draggableitemmodel.h \
     droppablegraphicsview.h \
@@ -54,6 +60,8 @@ HEADERS += \
     imageblendprocessor.h \
     imageconverter.h \
     imageprocessor.h \
+    imagetexturetransferdialog.h \
+    imagetexturetransferprocessor.h \
     interactivepixmapitem.h \
     mainwindow.h \
     processcommand.h \
@@ -61,7 +69,9 @@ HEADERS += \
     stitcherdialog.h
 
 FORMS += \
+    beautydialog.ui \
     imageblenddialog.ui \
+    imagetexturetransferdialog.ui \
     mainwindow.ui \
     stitcherdialog.ui
 
@@ -74,3 +84,6 @@ CONFIG += embed_translations
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resources.qrc

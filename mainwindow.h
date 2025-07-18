@@ -42,10 +42,12 @@ private slots:
     void on_imageGrayscaleButton_clicked();
     void on_cannyButton_clicked();
     void on_imageStitchButton_clicked();
-    void on_imageBlendButton_clicked(); // 图像融合按钮槽函数
+    void on_imageBlendButton_clicked();
+    void on_textureMigrationButton_clicked();
 
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
+    void on_beautyButton_clicked(); // <-- 新增槽函数
 
 private:
     void scaleImage(double newScale);
