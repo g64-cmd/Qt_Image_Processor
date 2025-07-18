@@ -48,6 +48,8 @@ private slots:
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
     void on_beautyButton_clicked(); // <-- 新增槽函数
+    void on_gamma_clicked(); // <-- 新增
+    void on_gammaSlider_valueChanged(int value); // <-- 新增
 
 private:
     void scaleImage(double newScale);

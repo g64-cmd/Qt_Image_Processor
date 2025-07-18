@@ -35,6 +35,7 @@ SOURCES += \
     cannyprocessor.cpp \
     draggableitemmodel.cpp \
     droppablegraphicsview.cpp \
+    gammaprocessor.cpp \
     grayscaleprocessor.cpp \
     imageblenddialog.cpp \
     imageblendprocessor.cpp \
@@ -55,6 +56,7 @@ HEADERS += \
     cannyprocessor.h \
     draggableitemmodel.h \
     droppablegraphicsview.h \
+    gammaprocessor.h \
     grayscaleprocessor.h \
     imageblenddialog.h \
     imageblendprocessor.h \

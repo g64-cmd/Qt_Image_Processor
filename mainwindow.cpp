@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "imageprocessor.h"
-#include "beautydialog.h" // <-- 1. 包含新对话框的头文件
 #include "stagingareamanager.h"
 #include "draggableitemmodel.h"
 #include "droppablegraphicsview.h"
@@ -9,6 +8,7 @@
 #include "stitcherdialog.h"
 #include "imageblenddialog.h"
 #include "imagetexturetransferdialog.h"
+#include "beautydialog.h" // <-- 关键修复：包含美颜对话框的头文件
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -62,11 +62,70 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionredo, &QAction::triggered, undoStack, &QUndoStack::redo);
     connect(undoStack, &QUndoStack::canUndoChanged, ui->actionundo, &QAction::setEnabled);
     connect(undoStack, &QUndoStack::canRedoChanged, ui->actionredo, &QAction::setEnabled);
+
+    // --- 伽马滑块初始化 ---
+    ui->gammaSlider->setRange(10, 300); // 代表伽马值 0.1 到 3.0
+    ui->gammaSlider->setValue(100);     // 默认值 1.0 (无变化)
+    ui->gammaSlider->setEnabled(false); // 初始时禁用
 }
+
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+void MainWindow::displayImageFromStagingArea(const QString &imageId)
+{
+    QPixmap pixmap = stagingManager->getPixmap(imageId);
+    if (pixmap.isNull()) return;
+    undoStack->clear();
+    currentStagedImageId = imageId;
+    processedPixmap = pixmap;
+    currentSavePath.clear();
+    updateDisplayImage(processedPixmap);
+    fitToWindow();
+    updateImageInfo();
+
+    // 加载新图片时，重置并启用滑块
+    ui->gammaSlider->setValue(100);
+    ui->gammaSlider->setEnabled(true);
+
+    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
+}
+
+// --- 伽马变换的槽函数实现 ---
+void MainWindow::on_gamma_clicked()
+{
+    // 点击按钮，将滑块和图像效果重置为默认值
+    if (!currentStagedImageId.isEmpty()) {
+        ui->gammaSlider->setValue(100);
+    }
+}
+
+void MainWindow::on_gammaSlider_valueChanged(int value)
+{
+    if (currentStagedImageId.isEmpty()) {
+        return; // 如果没有图片，则不执行任何操作
+    }
+
+    // 将滑块的整数值转换为浮点伽马值
+    double gamma = value / 100.0;
+
+    // 关键：为了避免效果叠加，我们总是从暂存区的原始图片开始处理
+    QPixmap originalStagedPixmap = stagingManager->getPixmap(currentStagedImageId);
+    if (originalStagedPixmap.isNull()) return;
+
+    QImage resultImage = ImageProcessor::applyGamma(originalStagedPixmap.toImage(), gamma);
+    if (!resultImage.isNull()) {
+        // 更新当前画布上的图片
+        processedPixmap = QPixmap::fromImage(resultImage);
+        updateDisplayImage(processedPixmap);
+        // 注意：伽马调整是一个“预览”步骤，我们不在这里更新暂存区或命令栈。
+        // 当用户在此基础上再进行锐化等操作时，这个调整后的结果
+        // 才会作为“操作前”的状态被存入命令。
+    }
+}
+
 void MainWindow::on_imageStitchButton_clicked()
 {
     if (stagingManager->getImageCount() == 0) {
@@ -91,9 +150,7 @@ void MainWindow::on_imageBlendButton_clicked()
         QMessageBox::information(this, "提示", "请先在主窗口中打开一张图片作为图层A。");
         return;
     }
-
     ImageBlendDialog dialog(processedPixmap, this);
-
     if (dialog.exec() == QDialog::Accepted) {
         QPixmap finalImage = dialog.getBlendedImage();
         if (!finalImage.isNull()) {
@@ -111,9 +168,7 @@ void MainWindow::on_textureMigrationButton_clicked()
         QMessageBox::information(this, "提示", "请先在主窗口中打开一张内容图。");
         return;
     }
-
     ImageTextureTransferDialog dialog(processedPixmap, this);
-
     if (dialog.exec() == QDialog::Accepted) {
         QPixmap finalImage = dialog.getResultImage();
         if (!finalImage.isNull()) {
@@ -125,19 +180,24 @@ void MainWindow::on_textureMigrationButton_clicked()
     }
 }
 
-void MainWindow::displayImageFromStagingArea(const QString &imageId)
+void MainWindow::on_beautyButton_clicked()
 {
-    QPixmap pixmap = stagingManager->getPixmap(imageId);
-    if (pixmap.isNull()) return;
-    undoStack->clear();
-    currentStagedImageId = imageId;
-    processedPixmap = pixmap;
-    currentSavePath.clear();
-    updateDisplayImage(processedPixmap);
-    fitToWindow();
-    updateImageInfo();
-    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先打开一张带有人脸的图片。");
+        return;
+    }
+    BeautyDialog dialog(processedPixmap, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        QPixmap finalImage = dialog.getResultImage();
+        if (!finalImage.isNull()) {
+            QString newId = stagingManager->addNewImage(finalImage, "beautified_image");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+            }
+        }
+    }
 }
+
 void MainWindow::on_imageSharpenButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -146,6 +206,7 @@ void MainWindow::on_imageSharpenButton_clicked()
     }
     undoStack->push(new ProcessCommand(this, ProcessCommand::Sharpen));
 }
+
 void MainWindow::on_imageGrayscaleButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -154,6 +215,7 @@ void MainWindow::on_imageGrayscaleButton_clicked()
     }
     undoStack->push(new ProcessCommand(this, ProcessCommand::Grayscale));
 }
+
 void MainWindow::on_cannyButton_clicked()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -162,6 +224,7 @@ void MainWindow::on_cannyButton_clicked()
     }
     undoStack->push(new ProcessCommand(this, ProcessCommand::Canny));
 }
+
 void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &pixmap)
 {
     if (currentStagedImageId != imageId) {
@@ -173,14 +236,17 @@ void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &p
     currentSavePath.clear();
     updateImageInfo();
 }
+
 QString MainWindow::getCurrentImageId() const
 {
     return currentStagedImageId;
 }
+
 QPixmap MainWindow::getCurrentImagePixmap() const
 {
     return processedPixmap;
 }
+
 void MainWindow::on_actionopen_triggered()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("打开图像"), "", "Image Files (*.png *.jpg *.bmp)");
@@ -188,6 +254,7 @@ void MainWindow::on_actionopen_triggered()
         loadNewImageFromFile(fileName);
     }
 }
+
 void MainWindow::on_actionsave_triggered()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -200,6 +267,7 @@ void MainWindow::on_actionsave_triggered()
         saveImageToFile(currentSavePath);
     }
 }
+
 void MainWindow::on_actionsave_as_triggered()
 {
     if (currentStagedImageId.isEmpty()) {
@@ -213,29 +281,12 @@ void MainWindow::on_actionsave_as_triggered()
         }
     }
 }
+
 void MainWindow::on_actionexit_triggered()
 {
     this->close();
 }
-void MainWindow::on_beautyButton_clicked()
-{
-    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
-        QMessageBox::information(this, "提示", "请先打开一张带有人脸的图片。");
-        return;
-    }
 
-    BeautyDialog dialog(processedPixmap, this);
-
-    if (dialog.exec() == QDialog::Accepted) {
-        QPixmap finalImage = dialog.getResultImage();
-        if (!finalImage.isNull()) {
-            QString newId = stagingManager->addNewImage(finalImage, "beautified_image");
-            if (!newId.isEmpty()) {
-                displayImageFromStagingArea(newId);
-            }
-        }
-    }
-}
 bool MainWindow::saveImageToFile(const QString &filePath)
 {
     if (processedPixmap.isNull()) return false;
@@ -247,6 +298,7 @@ bool MainWindow::saveImageToFile(const QString &filePath)
         return false;
     }
 }
+
 void MainWindow::loadNewImageFromFile(const QString &filePath)
 {
     QPixmap pixmap;
@@ -261,6 +313,7 @@ void MainWindow::loadNewImageFromFile(const QString &filePath)
         displayImageFromStagingArea(newId);
     }
 }
+
 void MainWindow::onStagedImageDropped(const QString &imageId)
 {
     displayImageFromStagingArea(imageId);
@@ -268,6 +321,7 @@ void MainWindow::onStagedImageDropped(const QString &imageId)
         stagingManager->promoteImage(imageId);
     });
 }
+
 void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
 {
     QString imageId = index.data(Qt::UserRole).toString();
@@ -278,6 +332,7 @@ void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
         });
     }
 }
+
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)
 {
     if (pixmap.isNull()) return;
@@ -285,6 +340,7 @@ void MainWindow::updateDisplayImage(const QPixmap &pixmap)
     pixmapItem = imageScene->addPixmap(pixmap);
     imageScene->setSceneRect(pixmap.rect());
 }
+
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == ui->graphicsView->viewport() && event->type() == QEvent::Wheel && pixmapItem) {
@@ -296,6 +352,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     }
     return QMainWindow::eventFilter(watched, event);
 }
+
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (!pixmapItem) {
@@ -314,6 +371,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         QMainWindow::keyPressEvent(event);
     }
 }
+
 void MainWindow::scaleImage(double newScale)
 {
     double newBoundedScale = qBound(0.1, newScale, 10.0);
@@ -325,12 +383,14 @@ void MainWindow::scaleImage(double newScale)
     scaleFactor = newBoundedScale;
     ui->statusbar->showMessage(QString("缩放比例: %1%").arg(int(scaleFactor * 100)));
 }
+
 void MainWindow::fitToWindow()
 {
     if (!pixmapItem) return;
     ui->graphicsView->fitInView(imageScene->sceneRect(), Qt::KeepAspectRatio);
     scaleFactor = ui->graphicsView->transform().m11();
 }
+
 void MainWindow::updateImageInfo()
 {
     if (processedPixmap.isNull()) {
