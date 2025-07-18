@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     , undoStack(nullptr)
 {
     ui->setupUi(this);
+
     imageScene = new QGraphicsScene(this);
     ui->graphicsView->setScene(imageScene);
     ui->graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
@@ -38,14 +39,19 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
-    connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
-    connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
-    connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
-    connect(ui->actionexit, &QAction::triggered, this, &MainWindow::on_actionexit_triggered);
-    connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
-    connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
-    connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
-    connect(ui->imageStitchButton, &QPushButton::clicked, this, &MainWindow::on_imageStitchButton_clicked);
+
+    // --- 关键修复：移除所有多余的手动连接 ---
+    // 以下 connect 语句因为遵循 on_objectName_signalName 的命名约定，
+    // ui->setupUi(this) 已经为我们自动完成了连接，所以我们必须删除它们。
+    // connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
+    // connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
+    // connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
+    // connect(ui->actionexit, &QAction::triggered, this, &MainWindow::on_actionexit_triggered);
+    // connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
+    // connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
+    // connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
+    // connect(ui->imageStitchButton, &QPushButton::clicked, this, &MainWindow::on_imageStitchButton_clicked);
+
     stagingModel = new DraggableItemModel(this);
     stagingManager = new StagingAreaManager(stagingModel, this);
     ui->recentImageView->setModel(stagingModel);
@@ -54,8 +60,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->recentImageView->setResizeMode(QListView::Adjust);
     ui->recentImageView->setWordWrap(true);
     ui->recentImageView->setDragEnabled(true);
+
+    // 保留这些必要的、不符合自动连接规则或连接到其他对象的 connect 语句
     connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
     connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
+
     undoStack = new QUndoStack(this);
     connect(ui->actionundo, &QAction::triggered, undoStack, &QUndoStack::undo);
     connect(ui->actionredo, &QAction::triggered, undoStack, &QUndoStack::redo);
@@ -66,7 +75,6 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-
 void MainWindow::on_imageStitchButton_clicked()
 {
     if (stagingManager->getImageCount() == 0) {
@@ -74,13 +82,9 @@ void MainWindow::on_imageStitchButton_clicked()
         return;
     }
     StitcherDialog dialog(stagingManager, stagingModel, this);
-
-    // --- 关键修改：检查对话框的返回结果 ---
     if (dialog.exec() == QDialog::Accepted) {
-        // 如果用户点击了"Save"，则获取最终图片
         QPixmap finalImage = dialog.getFinalImage();
         if (!finalImage.isNull()) {
-            // 将拼接好的图片添加到暂存区，并显示在主窗口
             QString newId = stagingManager->addNewImage(finalImage, "stitched_image");
             if (!newId.isEmpty()) {
                 displayImageFromStagingArea(newId);
@@ -88,7 +92,6 @@ void MainWindow::on_imageStitchButton_clicked()
         }
     }
 }
-
 void MainWindow::displayImageFromStagingArea(const QString &imageId)
 {
     QPixmap pixmap = stagingManager->getPixmap(imageId);
