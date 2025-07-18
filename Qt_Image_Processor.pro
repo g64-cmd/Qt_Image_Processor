@@ -34,6 +34,8 @@ SOURCES += \
     draggableitemmodel.cpp \
     droppablegraphicsview.cpp \
     grayscaleprocessor.cpp \
+    imageblenddialog.cpp \
+    imageblendprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
     interactivepixmapitem.cpp \
@@ -48,6 +50,8 @@ HEADERS += \
     draggableitemmodel.h \
     droppablegraphicsview.h \
     grayscaleprocessor.h \
+    imageblenddialog.h \
+    imageblendprocessor.h \
     imageconverter.h \
     imageprocessor.h \
     interactivepixmapitem.h \
@@ -57,6 +61,7 @@ HEADERS += \
     stitcherdialog.h
 
 FORMS += \
+    imageblenddialog.ui \
     mainwindow.ui \
     stitcherdialog.ui
 

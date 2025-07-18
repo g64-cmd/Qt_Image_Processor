@@ -6,6 +6,8 @@
 #include "droppablegraphicsview.h"
 #include "processcommand.h"
 #include "stitcherdialog.h"
+#include "imageblenddialog.h" // 包含融合对话框的头文件
+
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QImageReader>
@@ -16,6 +18,7 @@
 #include <QPainter>
 #include <QCloseEvent>
 #include <QUndoStack>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -40,18 +43,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // --- 关键修复：移除所有多余的手动连接 ---
-    // 以下 connect 语句因为遵循 on_objectName_signalName 的命名约定，
-    // ui->setupUi(this) 已经为我们自动完成了连接，所以我们必须删除它们。
-    // connect(ui->actionopen, &QAction::triggered, this, &MainWindow::on_actionopen_triggered);
-    // connect(ui->actionsave, &QAction::triggered, this, &MainWindow::on_actionsave_triggered);
-    // connect(ui->actionsave_as, &QAction::triggered, this, &MainWindow::on_actionsave_as_triggered);
-    // connect(ui->actionexit, &QAction::triggered, this, &MainWindow::on_actionexit_triggered);
-    // connect(ui->imageSharpenButton, &QPushButton::clicked, this, &MainWindow::on_imageSharpenButton_clicked);
-    // connect(ui->imageGrayscaleButton, &QPushButton::clicked, this, &MainWindow::on_imageGrayscaleButton_clicked);
-    // connect(ui->cannyButton, &QPushButton::clicked, this, &MainWindow::on_cannyButton_clicked);
-    // connect(ui->imageStitchButton, &QPushButton::clicked, this, &MainWindow::on_imageStitchButton_clicked);
-
     stagingModel = new DraggableItemModel(this);
     stagingManager = new StagingAreaManager(stagingModel, this);
     ui->recentImageView->setModel(stagingModel);
@@ -61,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->recentImageView->setWordWrap(true);
     ui->recentImageView->setDragEnabled(true);
 
-    // 保留这些必要的、不符合自动连接规则或连接到其他对象的 connect 语句
+    // 只保留必要的、非自动连接的 connect 语句
     connect(ui->recentImageView, &QListView::clicked, this, &MainWindow::on_recentImageView_clicked);
     connect(ui->graphicsView, &DroppableGraphicsView::stagedImageDropped, this, &MainWindow::onStagedImageDropped);
 
@@ -92,6 +83,27 @@ void MainWindow::on_imageStitchButton_clicked()
         }
     }
 }
+
+void MainWindow::on_imageBlendButton_clicked()
+{
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "请先在主窗口中打开一张图片作为图层A。");
+        return;
+    }
+
+    ImageBlendDialog dialog(processedPixmap, this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QPixmap finalImage = dialog.getBlendedImage();
+        if (!finalImage.isNull()) {
+            QString newId = stagingManager->addNewImage(finalImage, "blended_image");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+            }
+        }
+    }
+}
+
 void MainWindow::displayImageFromStagingArea(const QString &imageId)
 {
     QPixmap pixmap = stagingManager->getPixmap(imageId);
@@ -211,15 +223,19 @@ void MainWindow::loadNewImageFromFile(const QString &filePath)
 }
 void MainWindow::onStagedImageDropped(const QString &imageId)
 {
-    stagingManager->promoteImage(imageId);
     displayImageFromStagingArea(imageId);
+    QTimer::singleShot(0, this, [this, imageId]() {
+        stagingManager->promoteImage(imageId);
+    });
 }
 void MainWindow::on_recentImageView_clicked(const QModelIndex &index)
 {
     QString imageId = index.data(Qt::UserRole).toString();
     if (!imageId.isEmpty()) {
-        stagingManager->promoteImage(imageId);
         displayImageFromStagingArea(imageId);
+        QTimer::singleShot(0, this, [this, imageId]() {
+            stagingManager->promoteImage(imageId);
+        });
     }
 }
 void MainWindow::updateDisplayImage(const QPixmap &pixmap)

@@ -12,7 +12,6 @@ class QModelIndex;
 class StagingAreaManager;
 class DraggableItemModel;
 class QUndoStack;
-
 class ProcessCommand;
 
 QT_BEGIN_NAMESPACE
@@ -42,7 +41,9 @@ private slots:
     void on_imageSharpenButton_clicked();
     void on_imageGrayscaleButton_clicked();
     void on_cannyButton_clicked();
-    void on_imageStitchButton_clicked(); // <-- 关键修复：确保这个槽函数已声明
+    void on_imageStitchButton_clicked();
+    void on_imageBlendButton_clicked(); // 图像融合按钮槽函数
+
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
 
