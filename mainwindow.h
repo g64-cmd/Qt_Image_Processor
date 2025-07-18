@@ -13,6 +13,7 @@ class StagingAreaManager;
 class DraggableItemModel;
 class QUndoStack;
 class ProcessCommand;
+class HistogramWidget; // 确保向前声明了 HistogramWidget
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -55,6 +56,10 @@ private slots:
     void on_brightnessSlider_valueChanged(int value);
     void on_contrastSlider_valueChanged(int value);
     void on_saturationSlider_valueChanged(int value);
+    void on_hueSlider_valueChanged(int value);
+
+    // --- 颜色拾取器的槽函数 ---
+    void onMouseMovedOnImage(const QPointF &scenePos); // <--- 已添加缺失的槽函数声明
 
 private:
     void scaleImage(double newScale);
@@ -71,9 +76,10 @@ private:
     QString getCurrentImageId() const;
     QPixmap getCurrentImagePixmap() const;
 
-    // --- 新增的辅助函数 ---
     void applyAllAdjustments();
     void resetAdjustmentSliders();
+
+    void updateExtraInfoPanels(const QPixmap &pixmap); // <--- 已添加缺失的辅助函数声明
 
     Ui::MainWindow *ui;
     QString currentStagedImageId;
@@ -90,9 +96,9 @@ private:
     DraggableItemModel *stagingModel;
     QUndoStack *undoStack;
 
-    // --- 新增成员变量以追踪滑块值 ---
-    int currentBrightness = 0;
-    int currentContrast = 0;
-    int currentSaturation = 0;
+    int currentBrightness;
+    int currentContrast;
+    int currentSaturation;
+    int currentHue;
 };
 #endif // MAINWINDOW_H

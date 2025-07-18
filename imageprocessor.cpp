@@ -5,7 +5,7 @@
 #include "imageblendprocessor.h"
 #include "imagetexturetransferprocessor.h"
 #include "gammaprocessor.h"
-#include "coloradjustprocessor.h" // <-- 1. 包含新的处理器头文件
+#include "coloradjustprocessor.h"
 #include <opencv2/opencv.hpp>
 
 // ... (其他函数保持不变) ...
@@ -17,9 +17,10 @@ QImage ImageProcessor::textureTransfer(const QImage &contentImage, const QImage 
 QImage ImageProcessor::applyGamma(const QImage &sourceImage, double gamma){return GammaProcessor::process(sourceImage,gamma);}
 
 
-// --- 2. 实现新的色彩调整调度函数 ---
-QImage ImageProcessor::adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation)
+// --- 更新色彩调整调度函数 ---
+QImage ImageProcessor::adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation, int hue)
 {
+    // 顺序很重要：先调整亮度和对比度，再调整饱和度和色相
     QImage tempImage = ColorAdjustProcessor::adjustBrightnessContrast(sourceImage, brightness, contrast);
-    return ColorAdjustProcessor::adjustSaturation(tempImage, saturation);
+    return ColorAdjustProcessor::adjustSaturationHue(tempImage, saturation, hue);
 }

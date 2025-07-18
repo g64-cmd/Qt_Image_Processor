@@ -38,6 +38,7 @@ SOURCES += \
     droppablegraphicsview.cpp \
     gammaprocessor.cpp \
     grayscaleprocessor.cpp \
+    histogramwidget.cpp \
     imageblenddialog.cpp \
     imageblendprocessor.cpp \
     imageconverter.cpp \
@@ -60,6 +61,7 @@ HEADERS += \
     droppablegraphicsview.h \
     gammaprocessor.h \
     grayscaleprocessor.h \
+    histogramwidget.h \
     imageblenddialog.h \
     imageblendprocessor.h \
     imageconverter.h \

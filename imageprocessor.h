@@ -15,8 +15,8 @@ public:
     static QImage textureTransfer(const QImage &contentImage, const QImage &textureImage);
     static QImage applyGamma(const QImage &sourceImage, double gamma);
 
-    // --- 新增的色彩调整调度函数 ---
-    static QImage adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation);
+    // --- 更新色彩调整调度函数 ---
+    static QImage adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation, int hue);
 };
 
 #endif // IMAGEPROCESSOR_H

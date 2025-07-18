@@ -9,6 +9,7 @@
 #include "imageblenddialog.h"
 #include "imagetexturetransferdialog.h"
 #include "beautydialog.h"
+#include "histogramwidget.h" // <--- 包含新头文件
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -34,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     , currentBrightness(0)
     , currentContrast(0)
     , currentSaturation(0)
+    , currentHue(0)
 {
     ui->setupUi(this);
 
@@ -47,6 +49,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
+
+    // --- 新增：连接颜色拾取器信号 ---
+    connect(ui->graphicsView, &DroppableGraphicsView::mouseMovedOnScene, this, &MainWindow::onMouseMovedOnImage);
 
     stagingModel = new DraggableItemModel(this);
     stagingManager = new StagingAreaManager(stagingModel, this);
@@ -86,6 +91,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->saturationSlider->setValue(0);
     ui->saturationSlider->setEnabled(false);
     connect(ui->saturationSlider, &QSlider::valueChanged, this, &MainWindow::on_saturationSlider_valueChanged);
+
+    ui->hueSlider->setRange(-180, 180);
+    ui->hueSlider->setValue(0);
+    ui->hueSlider->setEnabled(false);
+    connect(ui->hueSlider, &QSlider::valueChanged, this, &MainWindow::on_hueSlider_valueChanged);
+
+    // --- 新增：初始化信息面板 ---
+    ui->colorSwatchLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    ui->colorSwatchLabel->setAutoFillBackground(true);
+    updateExtraInfoPanels(QPixmap()); // 初始状态清空
 }
 
 MainWindow::~MainWindow()
@@ -100,24 +115,25 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
     undoStack->clear();
     currentStagedImageId = imageId;
 
-    // 重置并启用所有滑块
     resetAdjustmentSliders();
     ui->gammaSlider->setEnabled(true);
     ui->brightnessSlider->setEnabled(true);
     ui->contrastSlider->setEnabled(true);
     ui->saturationSlider->setEnabled(true);
+    ui->hueSlider->setEnabled(true);
 
-    // 在滑块重置后，再更新图片显示
     processedPixmap = pixmap;
     currentSavePath.clear();
     updateDisplayImage(processedPixmap);
     fitToWindow();
     updateImageInfo();
 
+    // --- 新增：更新直方图和信息面板 ---
+    updateExtraInfoPanels(processedPixmap);
+
     ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
 }
 
-// --- 调整参数的槽函数 ---
 void MainWindow::on_gamma_clicked()
 {
     if (!currentStagedImageId.isEmpty()) {
@@ -125,7 +141,7 @@ void MainWindow::on_gamma_clicked()
     }
 }
 
-void MainWindow::on_gammaSlider_valueChanged(int value)
+void MainWindow::on_gammaSlider_valueChanged(int /*value*/)
 {
     applyAllAdjustments();
 }
@@ -148,7 +164,12 @@ void MainWindow::on_saturationSlider_valueChanged(int value)
     applyAllAdjustments();
 }
 
-// --- 新增的辅助函数 ---
+void MainWindow::on_hueSlider_valueChanged(int value)
+{
+    currentHue = value;
+    applyAllAdjustments();
+}
+
 void MainWindow::applyAllAdjustments()
 {
     if (currentStagedImageId.isEmpty()) return;
@@ -158,43 +179,44 @@ void MainWindow::applyAllAdjustments()
 
     QImage tempImage = originalStagedPixmap.toImage();
 
-    // 1. 应用伽马变换
     double gamma = ui->gammaSlider->value() / 100.0;
-    // 只有在伽马值不是默认值1.0时才应用，以提高效率
     if (!qFuzzyCompare(gamma, 1.0)) {
         tempImage = ImageProcessor::applyGamma(tempImage, gamma);
     }
 
-    // 2. 应用色彩调整
-    tempImage = ImageProcessor::adjustColor(tempImage, currentBrightness, currentContrast, currentSaturation);
+    tempImage = ImageProcessor::adjustColor(tempImage, currentBrightness, currentContrast, currentSaturation, currentHue);
 
-    // 3. 更新显示
     processedPixmap = QPixmap::fromImage(tempImage);
     updateDisplayImage(processedPixmap);
+
+    // --- 新增：更新直方图和信息面板 ---
+    updateExtraInfoPanels(processedPixmap);
 }
 
 void MainWindow::resetAdjustmentSliders()
 {
-    // 阻止信号触发，以免重复调用 applyAllAdjustments
     ui->gammaSlider->blockSignals(true);
     ui->brightnessSlider->blockSignals(true);
     ui->contrastSlider->blockSignals(true);
     ui->saturationSlider->blockSignals(true);
+    ui->hueSlider->blockSignals(true);
 
     ui->gammaSlider->setValue(100);
     ui->brightnessSlider->setValue(0);
     ui->contrastSlider->setValue(0);
     ui->saturationSlider->setValue(0);
+    ui->hueSlider->setValue(0);
 
     currentBrightness = 0;
     currentContrast = 0;
     currentSaturation = 0;
+    currentHue = 0;
 
-    // 恢复信号
     ui->gammaSlider->blockSignals(false);
     ui->brightnessSlider->blockSignals(false);
     ui->contrastSlider->blockSignals(false);
     ui->saturationSlider->blockSignals(false);
+    ui->hueSlider->blockSignals(false);
 }
 
 void MainWindow::on_imageStitchButton_clicked()
@@ -306,6 +328,9 @@ void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &p
     stagingManager->updateImage(imageId, processedPixmap);
     currentSavePath.clear();
     updateImageInfo();
+
+    // --- 新增：更新直方图和信息面板 ---
+    updateExtraInfoPanels(processedPixmap);
 }
 
 QString MainWindow::getCurrentImageId() const
@@ -361,6 +386,7 @@ void MainWindow::on_actionexit_triggered()
 bool MainWindow::saveImageToFile(const QString &filePath)
 {
     if (processedPixmap.isNull()) return false;
+
     if (processedPixmap.save(filePath)) {
         ui->statusbar->showMessage(tr("图像已成功保存至 %1").arg(filePath), 5000);
         return true;
@@ -473,4 +499,47 @@ void MainWindow::updateImageInfo()
     ui->imageNameLabel->setText(QString("图片名称: %1").arg(currentBaseName));
     ui->imageResolutionLabel->setText(QString("分辨率: %1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));
     ui->imageSizeLabel->setText(QString("大小: %1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
+}
+
+// --- 新增槽函数实现 ---
+void MainWindow::onMouseMovedOnImage(const QPointF &scenePos)
+{
+    if (processedPixmap.isNull() || !pixmapItem || !pixmapItem->sceneBoundingRect().contains(scenePos)) {
+        // 鼠标不在图片上，清空信息
+        ui->colorPosLabel->setText("Pos:");
+        ui->colorRgbLabel->setText("RGB:");
+        ui->colorHexLabel->setText("HEX:");
+        QPalette palette = ui->colorSwatchLabel->palette();
+        palette.setColor(QPalette::Window, Qt::lightGray);
+        ui->colorSwatchLabel->setPalette(palette);
+        return;
+    }
+
+    // 将场景坐标转换为图片内的像素坐标
+    QPointF pixmapPos = pixmapItem->mapFromScene(scenePos);
+    int x = qRound(pixmapPos.x());
+    int y = qRound(pixmapPos.y());
+
+    if (x >= 0 && x < processedPixmap.width() && y >= 0 && y < processedPixmap.height()) {
+        QColor color = processedPixmap.toImage().pixelColor(x, y);
+
+        ui->colorPosLabel->setText(QString("Pos: (%1, %2)").arg(x).arg(y));
+        ui->colorRgbLabel->setText(QString("RGB: (%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue()));
+        ui->colorHexLabel->setText(QString("HEX: %1").arg(color.name(QColor::HexRgb)).toUpper());
+
+        QPalette palette = ui->colorSwatchLabel->palette();
+        palette.setColor(QPalette::Window, color);
+        ui->colorSwatchLabel->setPalette(palette);
+    }
+}
+
+// --- 新增辅助函数实现 ---
+void MainWindow::updateExtraInfoPanels(const QPixmap &pixmap)
+{
+    ui->histogramWidget->updateHistogram(pixmap.toImage());
+
+    // 如果图像为空，也清空颜色信息
+    if (pixmap.isNull()) {
+        onMouseMovedOnImage(QPointF(-1, -1)); // 传入一个无效点来清空信息
+    }
 }

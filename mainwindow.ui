@@ -142,8 +142,8 @@
        <rect>
         <x>0</x>
         <y>420</y>
-        <width>790</width>
-        <height>110</height>
+        <width>341</width>
+        <height>111</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -152,12 +152,12 @@
       <property name="frameShadow">
        <enum>QFrame::Shadow::Raised</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
-         <x>190</x>
-         <y>10</y>
-         <width>251</width>
+         <x>10</x>
+         <y>9</y>
+         <width>331</width>
          <height>101</height>
         </rect>
        </property>
@@ -203,6 +203,20 @@
             </property>
            </widget>
           </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>饱和度</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QSlider" name="saturationSlider">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_2">
             <property name="text">
@@ -217,15 +231,15 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_3">
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>饱和度</string>
+             <string>色相</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QSlider" name="saturationSlider">
+          <item row="1" column="3">
+           <widget class="QSlider" name="hueSlider">
             <property name="orientation">
              <enum>Qt::Orientation::Horizontal</enum>
             </property>
@@ -245,6 +259,62 @@
         <height>420</height>
        </rect>
       </property>
+     </widget>
+     <widget class="HistogramWidget" name="histogramWidget" native="true">
+      <property name="geometry">
+       <rect>
+        <x>362</x>
+        <y>431</y>
+        <width>221</width>
+        <height>99</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="colorSwatchLabel">
+      <property name="geometry">
+       <rect>
+        <x>600</x>
+        <y>460</y>
+        <width>30</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>颜色</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="layoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>650</x>
+        <y>430</y>
+        <width>131</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QLabel" name="colorRgbLabel">
+         <property name="text">
+          <string>RGB:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="colorHexLabel">
+         <property name="text">
+          <string>HEX:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="colorPosLabel">
+         <property name="text">
+          <string>Pos:</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
     <widget class="QWidget" name="videoTab">
@@ -349,6 +419,12 @@
    <class>DroppableGraphicsView</class>
    <extends>QGraphicsView</extends>
    <header>droppablegraphicsview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>HistogramWidget</class>
+   <extends>QWidget</extends>
+   <header>histogramwidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
