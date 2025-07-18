@@ -33,6 +33,7 @@ SOURCES += \
     beautydialog.cpp \
     beautyprocessor.cpp \
     cannyprocessor.cpp \
+    coloradjustprocessor.cpp \
     draggableitemmodel.cpp \
     droppablegraphicsview.cpp \
     gammaprocessor.cpp \
@@ -54,6 +55,7 @@ HEADERS += \
     beautydialog.h \
     beautyprocessor.h \
     cannyprocessor.h \
+    coloradjustprocessor.h \
     draggableitemmodel.h \
     droppablegraphicsview.h \
     gammaprocessor.h \

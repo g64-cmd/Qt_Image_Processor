@@ -13,9 +13,10 @@ public:
     static QImage canny(const QImage &sourceImage);
     static QImage blend(const QImage &imageA, const QImage &imageB, double alpha);
     static QImage textureTransfer(const QImage &contentImage, const QImage &textureImage);
-
-    // --- 新增的伽马变换调度函数 ---
     static QImage applyGamma(const QImage &sourceImage, double gamma);
+
+    // --- 新增的色彩调整调度函数 ---
+    static QImage adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation);
 };
 
 #endif // IMAGEPROCESSOR_H

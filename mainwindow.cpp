@@ -8,7 +8,7 @@
 #include "stitcherdialog.h"
 #include "imageblenddialog.h"
 #include "imagetexturetransferdialog.h"
-#include "beautydialog.h" // <-- 关键修复：包含美颜对话框的头文件
+#include "beautydialog.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -31,6 +31,9 @@ MainWindow::MainWindow(QWidget *parent)
     , stagingManager(nullptr)
     , stagingModel(nullptr)
     , undoStack(nullptr)
+    , currentBrightness(0)
+    , currentContrast(0)
+    , currentSaturation(0)
 {
     ui->setupUi(this);
 
@@ -64,9 +67,25 @@ MainWindow::MainWindow(QWidget *parent)
     connect(undoStack, &QUndoStack::canRedoChanged, ui->actionredo, &QAction::setEnabled);
 
     // --- 伽马滑块初始化 ---
-    ui->gammaSlider->setRange(10, 300); // 代表伽马值 0.1 到 3.0
-    ui->gammaSlider->setValue(100);     // 默认值 1.0 (无变化)
-    ui->gammaSlider->setEnabled(false); // 初始时禁用
+    ui->gammaSlider->setRange(10, 300);
+    ui->gammaSlider->setValue(100);
+    ui->gammaSlider->setEnabled(false);
+
+    // --- 色彩调整滑块初始化 ---
+    ui->brightnessSlider->setRange(-100, 100);
+    ui->brightnessSlider->setValue(0);
+    ui->brightnessSlider->setEnabled(false);
+    connect(ui->brightnessSlider, &QSlider::valueChanged, this, &MainWindow::on_brightnessSlider_valueChanged);
+
+    ui->contrastSlider->setRange(-100, 100);
+    ui->contrastSlider->setValue(0);
+    ui->contrastSlider->setEnabled(false);
+    connect(ui->contrastSlider, &QSlider::valueChanged, this, &MainWindow::on_contrastSlider_valueChanged);
+
+    ui->saturationSlider->setRange(-100, 100);
+    ui->saturationSlider->setValue(0);
+    ui->saturationSlider->setEnabled(false);
+    connect(ui->saturationSlider, &QSlider::valueChanged, this, &MainWindow::on_saturationSlider_valueChanged);
 }
 
 MainWindow::~MainWindow()
@@ -80,23 +99,27 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
     if (pixmap.isNull()) return;
     undoStack->clear();
     currentStagedImageId = imageId;
+
+    // 重置并启用所有滑块
+    resetAdjustmentSliders();
+    ui->gammaSlider->setEnabled(true);
+    ui->brightnessSlider->setEnabled(true);
+    ui->contrastSlider->setEnabled(true);
+    ui->saturationSlider->setEnabled(true);
+
+    // 在滑块重置后，再更新图片显示
     processedPixmap = pixmap;
     currentSavePath.clear();
     updateDisplayImage(processedPixmap);
     fitToWindow();
     updateImageInfo();
 
-    // 加载新图片时，重置并启用滑块
-    ui->gammaSlider->setValue(100);
-    ui->gammaSlider->setEnabled(true);
-
     ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
 }
 
-// --- 伽马变换的槽函数实现 ---
+// --- 调整参数的槽函数 ---
 void MainWindow::on_gamma_clicked()
 {
-    // 点击按钮，将滑块和图像效果重置为默认值
     if (!currentStagedImageId.isEmpty()) {
         ui->gammaSlider->setValue(100);
     }
@@ -104,26 +127,74 @@ void MainWindow::on_gamma_clicked()
 
 void MainWindow::on_gammaSlider_valueChanged(int value)
 {
-    if (currentStagedImageId.isEmpty()) {
-        return; // 如果没有图片，则不执行任何操作
-    }
+    applyAllAdjustments();
+}
 
-    // 将滑块的整数值转换为浮点伽马值
-    double gamma = value / 100.0;
+void MainWindow::on_brightnessSlider_valueChanged(int value)
+{
+    currentBrightness = value;
+    applyAllAdjustments();
+}
 
-    // 关键：为了避免效果叠加，我们总是从暂存区的原始图片开始处理
+void MainWindow::on_contrastSlider_valueChanged(int value)
+{
+    currentContrast = value;
+    applyAllAdjustments();
+}
+
+void MainWindow::on_saturationSlider_valueChanged(int value)
+{
+    currentSaturation = value;
+    applyAllAdjustments();
+}
+
+// --- 新增的辅助函数 ---
+void MainWindow::applyAllAdjustments()
+{
+    if (currentStagedImageId.isEmpty()) return;
+
     QPixmap originalStagedPixmap = stagingManager->getPixmap(currentStagedImageId);
     if (originalStagedPixmap.isNull()) return;
 
-    QImage resultImage = ImageProcessor::applyGamma(originalStagedPixmap.toImage(), gamma);
-    if (!resultImage.isNull()) {
-        // 更新当前画布上的图片
-        processedPixmap = QPixmap::fromImage(resultImage);
-        updateDisplayImage(processedPixmap);
-        // 注意：伽马调整是一个“预览”步骤，我们不在这里更新暂存区或命令栈。
-        // 当用户在此基础上再进行锐化等操作时，这个调整后的结果
-        // 才会作为“操作前”的状态被存入命令。
+    QImage tempImage = originalStagedPixmap.toImage();
+
+    // 1. 应用伽马变换
+    double gamma = ui->gammaSlider->value() / 100.0;
+    // 只有在伽马值不是默认值1.0时才应用，以提高效率
+    if (!qFuzzyCompare(gamma, 1.0)) {
+        tempImage = ImageProcessor::applyGamma(tempImage, gamma);
     }
+
+    // 2. 应用色彩调整
+    tempImage = ImageProcessor::adjustColor(tempImage, currentBrightness, currentContrast, currentSaturation);
+
+    // 3. 更新显示
+    processedPixmap = QPixmap::fromImage(tempImage);
+    updateDisplayImage(processedPixmap);
+}
+
+void MainWindow::resetAdjustmentSliders()
+{
+    // 阻止信号触发，以免重复调用 applyAllAdjustments
+    ui->gammaSlider->blockSignals(true);
+    ui->brightnessSlider->blockSignals(true);
+    ui->contrastSlider->blockSignals(true);
+    ui->saturationSlider->blockSignals(true);
+
+    ui->gammaSlider->setValue(100);
+    ui->brightnessSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->saturationSlider->setValue(0);
+
+    currentBrightness = 0;
+    currentContrast = 0;
+    currentSaturation = 0;
+
+    // 恢复信号
+    ui->gammaSlider->blockSignals(false);
+    ui->brightnessSlider->blockSignals(false);
+    ui->contrastSlider->blockSignals(false);
+    ui->saturationSlider->blockSignals(false);
 }
 
 void MainWindow::on_imageStitchButton_clicked()
@@ -394,14 +465,12 @@ void MainWindow::fitToWindow()
 void MainWindow::updateImageInfo()
 {
     if (processedPixmap.isNull()) {
-        ui->imageName->setText("图片名称");
-        ui->imageFormat->setText("图片格式");
-        ui->imageResolution->setText("图片分辨率");
-        ui->imageSize->setText("图片大小");
+        ui->imageNameLabel->setText("图片名称:");
+        ui->imageResolutionLabel->setText("分辨率:");
+        ui->imageSizeLabel->setText("大小:");
         return;
     }
-    ui->imageName->setText(currentBaseName);
-    ui->imageFormat->setText(processedPixmap.toImage().hasAlphaChannel() ? "PNG" : "JPG/BMP");
-    ui->imageResolution->setText(QString("%1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));
-    ui->imageSize->setText(QString("%1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
+    ui->imageNameLabel->setText(QString("图片名称: %1").arg(currentBaseName));
+    ui->imageResolutionLabel->setText(QString("分辨率: %1 x %2").arg(processedPixmap.width()).arg(processedPixmap.height()));
+    ui->imageSizeLabel->setText(QString("大小: %1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
 }

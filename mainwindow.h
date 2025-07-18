@@ -44,12 +44,17 @@ private slots:
     void on_imageStitchButton_clicked();
     void on_imageBlendButton_clicked();
     void on_textureMigrationButton_clicked();
+    void on_beautyButton_clicked();
 
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
-    void on_beautyButton_clicked(); // <-- 新增槽函数
-    void on_gamma_clicked(); // <-- 新增
-    void on_gammaSlider_valueChanged(int value); // <-- 新增
+
+    // --- 调整参数的槽函数 ---
+    void on_gamma_clicked();
+    void on_gammaSlider_valueChanged(int value);
+    void on_brightnessSlider_valueChanged(int value);
+    void on_contrastSlider_valueChanged(int value);
+    void on_saturationSlider_valueChanged(int value);
 
 private:
     void scaleImage(double newScale);
@@ -66,6 +71,10 @@ private:
     QString getCurrentImageId() const;
     QPixmap getCurrentImagePixmap() const;
 
+    // --- 新增的辅助函数 ---
+    void applyAllAdjustments();
+    void resetAdjustmentSliders();
+
     Ui::MainWindow *ui;
     QString currentStagedImageId;
     QString currentSavePath;
@@ -80,5 +89,10 @@ private:
     StagingAreaManager *stagingManager;
     DraggableItemModel *stagingModel;
     QUndoStack *undoStack;
+
+    // --- 新增成员变量以追踪滑块值 ---
+    int currentBrightness = 0;
+    int currentContrast = 0;
+    int currentSaturation = 0;
 };
 #endif // MAINWINDOW_H
