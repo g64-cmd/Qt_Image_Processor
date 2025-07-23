@@ -2,28 +2,40 @@
 QT += core gui widgets
 CONFIG += c++17
 
-# 设置 OpenCV 根目录（根据你的实际路径）
-OPENCV_ROOT = C:/openCV/opencv/build
+# =================== vcpkg 终极集成方案 (最终确认版) ===================
 
-# 头文件路径（指向 include 目录）
-INCLUDEPATH += $$OPENCV_ROOT/include
-INCLUDEPATH += $$OPENCV_ROOT/include/opencv2  # 部分版本需要单独添加 [1,3](@ref)
+# 1. 定义 vcpkg 的安装路径 (请确保这个路径是您 vcpkg 的真实安装路径)
+VCPKG_ROOT_PATH = "C:/vcpkg/vcpkg/installed/x64-windows"
 
-# 库文件路径（区分 Debug/Release）
-win32 {
-    CONFIG(debug, debug|release) {
-        # Debug 模式
-        LIBS += -L$$OPENCV_ROOT/x64/vc16/lib \
-                -lopencv_world4120d  # 注意版本号（490 需替换为你的实际版本）
-    } else {
-        # Release 模式
-        LIBS += -L$$OPENCV_ROOT/x64/vc16/lib \
-                -lopencv_world4120    # 无后缀
-    }
+# 2. 关键修正：强制将正确的头文件路径添加到编译命令中
+# 我们需要添加 .../include/opencv4 这个路径
+QMAKE_CXXFLAGS += -I$$VCPKG_ROOT_PATH/include/opencv4
+
+# 3. 添加正确的库文件搜索路径
+LIBS += -L$$VCPKG_ROOT_PATH/lib
+
+# 4. 根据构建模式链接您的项目需要的所有 OpenCV 模块
+# (请根据您项目的实际需要，在这里添加或删除模块)
+CONFIG(debug, debug|release) {
+    # Debug 模式
+    LIBS += -lopencv_core4d
+    LIBS += -lopencv_imgproc4d
+    LIBS += -lopencv_highgui4d
+    LIBS += -lopencv_features2d4d
+    LIBS += -lopencv_calib3d4d
+    LIBS += -lopencv_stitching4d
+    # ... 其他您需要的带 'd' 的模块
+} else {
+    # Release 模式
+    LIBS += -lopencv_core4
+    LIBS += -lopencv_imgproc4
+    LIBS += -lopencv_highgui4
+    LIBS += -lopencv_features2d4
+    LIBS += -lopencv_calib3d4
+    LIBS += -lopencv_stitching4
+    # ... 其他您需要的不带 'd' 的模块
 }
-
-# 视频模块预留（后续迭代需启用）
-# LIBS += -lopencv_videoio4120 -lopencv_objdetect4120
+# =====================================================================
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
