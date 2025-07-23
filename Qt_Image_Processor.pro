@@ -24,6 +24,7 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_features2d4d
     LIBS += -lopencv_calib3d4d
     LIBS += -lopencv_stitching4d
+    LIBS += -lopencv_saliency4d
     # ... 其他您需要的带 'd' 的模块
 } else {
     # Release 模式
@@ -33,6 +34,7 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_features2d4
     LIBS += -lopencv_calib3d4
     LIBS += -lopencv_stitching4
+    LIBS += -lopencv_saliency4
     # ... 其他您需要的不带 'd' 的模块
 }
 # =====================================================================
