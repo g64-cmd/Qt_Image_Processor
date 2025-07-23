@@ -70,6 +70,16 @@
        <item>
         <widget class="QPushButton" name="imageStitchButton">
          <property name="text">
+          <string>图像组合</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="imageNewStitchButton">
+         <property name="toolTip">
+          <string>不同角度图片拼接成一张图片</string>
+         </property>
+         <property name="text">
           <string>图像拼接</string>
          </property>
         </widget>
@@ -314,7 +324,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

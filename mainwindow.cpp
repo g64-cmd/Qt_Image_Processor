@@ -1,3 +1,4 @@
+//mainwindow.cpp
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "imageprocessor.h"
@@ -9,7 +10,8 @@
 #include "imageblenddialog.h"
 #include "imagetexturetransferdialog.h"
 #include "beautydialog.h"
-#include "histogramwidget.h" // <--- 包含新头文件
+#include "histogramwidget.h"
+#include "newstitcherdialog.h" // <-- 确保包含了新对话框的头文件
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -38,8 +40,11 @@ MainWindow::MainWindow(QWidget *parent)
     , currentHue(0)
 {
     ui->setupUi(this);
-    // 在构造函数的 ui->setupUi(this); 之后添加
-    ui->imageSharpenButton->setIcon(QIcon(":/icons/resources/icons/edit-3.svg")); // 请替换为您下载的实际文件名
+
+    // --- 统一设置所有功能按钮的图标和尺寸 ---
+    const QSize iconSize(20, 20); // 定义一个统一的图标尺寸
+
+    ui->imageSharpenButton->setIcon(QIcon(":/icons/resources/icons/edit-3.svg"));
     ui->imageGrayscaleButton->setIcon(QIcon(":/icons/resources/icons/circle.svg"));
     ui->cannyButton->setIcon(QIcon(":/icons/resources/icons/crop.svg"));
     ui->imageStitchButton->setIcon(QIcon(":/icons/resources/icons/grid.svg"));
@@ -48,8 +53,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->beautyButton->setIcon(QIcon(":/icons/resources/icons/smile.svg"));
     ui->gamma->setIcon(QIcon(":/icons/resources/icons/sun.svg"));
 
-    // 调整图标大小，使其看起来更精致
-    const QSize iconSize(20, 20); // 定义一个统一的图标尺寸
+    // --- 新增：为新的图像拼接按钮设置图标 ---
+    ui->imageNewStitchButton->setIcon(QIcon(":/icons/resources/icons/layout.svg"));
+
+    // 将统一尺寸应用到所有按钮
     ui->imageSharpenButton->setIconSize(iconSize);
     ui->imageGrayscaleButton->setIconSize(iconSize);
     ui->cannyButton->setIconSize(iconSize);
@@ -58,6 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->textureMigrationButton->setIconSize(iconSize);
     ui->beautyButton->setIconSize(iconSize);
     ui->gamma->setIconSize(iconSize);
+    ui->imageNewStitchButton->setIconSize(iconSize); // <-- 应用到新按钮
 
 
     imageScene = new QGraphicsScene(this);
@@ -71,7 +79,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // --- 新增：连接颜色拾取器信号 ---
     connect(ui->graphicsView, &DroppableGraphicsView::mouseMovedOnScene, this, &MainWindow::onMouseMovedOnImage);
 
     stagingModel = new DraggableItemModel(this);
@@ -92,12 +99,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(undoStack, &QUndoStack::canUndoChanged, ui->actionundo, &QAction::setEnabled);
     connect(undoStack, &QUndoStack::canRedoChanged, ui->actionredo, &QAction::setEnabled);
 
-    // --- 伽马滑块初始化 ---
     ui->gammaSlider->setRange(10, 300);
     ui->gammaSlider->setValue(100);
     ui->gammaSlider->setEnabled(false);
 
-    // --- 色彩调整滑块初始化 ---
     ui->brightnessSlider->setRange(-100, 100);
     ui->brightnessSlider->setValue(0);
     ui->brightnessSlider->setEnabled(false);
@@ -118,16 +123,40 @@ MainWindow::MainWindow(QWidget *parent)
     ui->hueSlider->setEnabled(false);
     connect(ui->hueSlider, &QSlider::valueChanged, this, &MainWindow::on_hueSlider_valueChanged);
 
-    // --- 新增：初始化信息面板 ---
     ui->colorSwatchLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     ui->colorSwatchLabel->setAutoFillBackground(true);
-    updateExtraInfoPanels(QPixmap()); // 初始状态清空
+    updateExtraInfoPanels(QPixmap());
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+// --- 新增：新的图像拼接按钮的槽函数实现 ---
+void MainWindow::on_imageNewStitchButton_clicked()
+{
+    // 1. 创建并显示新的拼接对话框
+    NewStitcherDialog dialog(this);
+    int ret = dialog.exec(); // 以模态方式运行
+
+    // 2. 检查用户是否点击了"拼接"按钮并成功返回
+    if (ret == QDialog::Accepted) {
+        // 3. 从对话框获取拼接结果
+        QPixmap stitchedPixmap = dialog.getResultImage();
+        if (!stitchedPixmap.isNull()) {
+            // 4. 将拼接后的图像添加到暂存区并显示
+            QString newId = stagingManager->addNewImage(stitchedPixmap, "stitched_result");
+            if (!newId.isEmpty()) {
+                displayImageFromStagingArea(newId);
+                statusBar()->showMessage("图像拼接成功！");
+            }
+        } else {
+            statusBar()->showMessage("图像拼接失败或被取消。");
+        }
+    }
+}
+
 
 void MainWindow::displayImageFromStagingArea(const QString &imageId)
 {
@@ -149,7 +178,6 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
     fitToWindow();
     updateImageInfo();
 
-    // --- 新增：更新直方图和信息面板 ---
     updateExtraInfoPanels(processedPixmap);
 
     ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
@@ -210,7 +238,6 @@ void MainWindow::applyAllAdjustments()
     processedPixmap = QPixmap::fromImage(tempImage);
     updateDisplayImage(processedPixmap);
 
-    // --- 新增：更新直方图和信息面板 ---
     updateExtraInfoPanels(processedPixmap);
 }
 
@@ -350,7 +377,6 @@ void MainWindow::updateImageFromCommand(const QString &imageId, const QPixmap &p
     currentSavePath.clear();
     updateImageInfo();
 
-    // --- 新增：更新直方图和信息面板 ---
     updateExtraInfoPanels(processedPixmap);
 }
 
@@ -522,11 +548,9 @@ void MainWindow::updateImageInfo()
     ui->imageSizeLabel->setText(QString("大小: %1 KB").arg(processedPixmap.toImage().sizeInBytes() / 1024));
 }
 
-// --- 新增槽函数实现 ---
 void MainWindow::onMouseMovedOnImage(const QPointF &scenePos)
 {
     if (processedPixmap.isNull() || !pixmapItem || !pixmapItem->sceneBoundingRect().contains(scenePos)) {
-        // 鼠标不在图片上，清空信息
         ui->colorPosLabel->setText("Pos:");
         ui->colorRgbLabel->setText("RGB:");
         ui->colorHexLabel->setText("HEX:");
@@ -536,7 +560,6 @@ void MainWindow::onMouseMovedOnImage(const QPointF &scenePos)
         return;
     }
 
-    // 将场景坐标转换为图片内的像素坐标
     QPointF pixmapPos = pixmapItem->mapFromScene(scenePos);
     int x = qRound(pixmapPos.x());
     int y = qRound(pixmapPos.y());
@@ -554,13 +577,11 @@ void MainWindow::onMouseMovedOnImage(const QPointF &scenePos)
     }
 }
 
-// --- 新增辅助函数实现 ---
 void MainWindow::updateExtraInfoPanels(const QPixmap &pixmap)
 {
     ui->histogramWidget->updateHistogram(pixmap.toImage());
 
-    // 如果图像为空，也清空颜色信息
     if (pixmap.isNull()) {
-        onMouseMovedOnImage(QPointF(-1, -1)); // 传入一个无效点来清空信息
+        onMouseMovedOnImage(QPointF(-1, -1));
     }
 }

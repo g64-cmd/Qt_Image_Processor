@@ -1,3 +1,4 @@
+//mainwindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -13,7 +14,7 @@ class StagingAreaManager;
 class DraggableItemModel;
 class QUndoStack;
 class ProcessCommand;
-class HistogramWidget; // 确保向前声明了 HistogramWidget
+class HistogramWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -47,6 +48,9 @@ private slots:
     void on_textureMigrationButton_clicked();
     void on_beautyButton_clicked();
 
+    // --- 新增：为新的图像拼接按钮添加槽函数声明 ---
+    void on_imageNewStitchButton_clicked();
+
     void on_recentImageView_clicked(const QModelIndex &index);
     void onStagedImageDropped(const QString &imageId);
 
@@ -59,7 +63,7 @@ private slots:
     void on_hueSlider_valueChanged(int value);
 
     // --- 颜色拾取器的槽函数 ---
-    void onMouseMovedOnImage(const QPointF &scenePos); // <--- 已添加缺失的槽函数声明
+    void onMouseMovedOnImage(const QPointF &scenePos);
 
 private:
     void scaleImage(double newScale);
@@ -79,7 +83,7 @@ private:
     void applyAllAdjustments();
     void resetAdjustmentSliders();
 
-    void updateExtraInfoPanels(const QPixmap &pixmap); // <--- 已添加缺失的辅助函数声明
+    void updateExtraInfoPanels(const QPixmap &pixmap);
 
     Ui::MainWindow *ui;
     QString currentStagedImageId;

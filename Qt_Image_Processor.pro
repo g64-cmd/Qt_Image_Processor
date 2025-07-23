@@ -28,6 +28,9 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_saliency4d
     LIBS += -lopencv_objdetect4d  # <-- 新增此行，解决 CascadeClassifier 链接错误
     LIBS += -lopencv_saliency4d   # <-- 这是您之前需要的 saliency 模块
+    LIBS += -lopencv_stitching4d
+    LIBS += -lopencv_calib3d4d
+    LIBS += -lopencv_imgcodecs4d
     # ... 其他您需要的带 'd' 的模块
     LIBS += -ldlibd               # <-- 新增此行，解决 dlib 链接错误
     LIBS += -lopenblas
@@ -43,6 +46,9 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_saliency4
     LIBS += -lopencv_objdetect4  # <-- 新增此行，解决 CascadeClassifier 链接错误
     LIBS += -lopencv_saliency4   # <-- 这是您之前需要的 saliency 模块
+    LIBS += -lopencv_stitching4
+    LIBS += -lopencv_calib3d4
+    LIBS += -lopencv_imgcodecs4
     # ... 其他您需要的不带 'd' 的模块
     LIBS += -ldlib               # <-- 新增此行，解决 dlib 链接错误
     LIBS += -lopenblas
@@ -68,11 +74,13 @@ SOURCES += \
     imageblendprocessor.cpp \
     imageconverter.cpp \
     imageprocessor.cpp \
+    imagestitcherprocessor.cpp \
     imagetexturetransferdialog.cpp \
     imagetexturetransferprocessor.cpp \
     interactivepixmapitem.cpp \
     main.cpp \
     mainwindow.cpp \
+    newstitcherdialog.cpp \
     processcommand.cpp \
     stagingareamanager.cpp \
     stitcherdialog.cpp
@@ -91,10 +99,12 @@ HEADERS += \
     imageblendprocessor.h \
     imageconverter.h \
     imageprocessor.h \
+    imagestitcherprocessor.h \
     imagetexturetransferdialog.h \
     imagetexturetransferprocessor.h \
     interactivepixmapitem.h \
     mainwindow.h \
+    newstitcherdialog.h \
     processcommand.h \
     stagingareamanager.h \
     stitcherdialog.h
@@ -104,6 +114,7 @@ FORMS += \
     imageblenddialog.ui \
     imagetexturetransferdialog.ui \
     mainwindow.ui \
+    newstitcherdialog.ui \
     stitcherdialog.ui
 
 TRANSLATIONS += \
