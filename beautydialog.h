@@ -1,3 +1,4 @@
+// beautydialog.h
 #ifndef BEAUTYDIALOG_H
 #define BEAUTYDIALOG_H
 
@@ -20,8 +21,8 @@ public:
     QPixmap getResultImage() const;
 
 private slots:
-    // 只保留磨皮滑块的槽函数
     void on_sliderSmooth_valueChanged(int value);
+    void on_sliderThin_valueChanged(int value);
 
 private:
     void applyBeautyFilter();

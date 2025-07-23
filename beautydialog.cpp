@@ -1,3 +1,4 @@
+// beautydialog.cpp
 #include "beautydialog.h"
 #include "ui_beautydialog.h"
 #include "beautyprocessor.h"
@@ -13,20 +14,18 @@ BeautyDialog::BeautyDialog(const QPixmap &initialPixmap, QWidget *parent) :
 
     processor = new BeautyProcessor();
 
-    // 显示原图
     ui->labelBefore->setPixmap(originalPixmap.scaled(ui->labelBefore->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
-    // 设置磨皮滑块
     ui->sliderSmooth->setRange(0, 100);
-    ui->sliderSmooth->setValue(50); // 默认中等强度
+    ui->sliderSmooth->setValue(50);
+    ui->sliderThin->setRange(0, 100);
+    ui->sliderThin->setValue(0);
 
-    // 手动连接Apply按钮
     QPushButton *applyButton = ui->buttonBox->button(QDialogButtonBox::Apply);
     if (applyButton) {
         connect(applyButton, &QPushButton::clicked, this, &BeautyDialog::accept);
     }
 
-    // 立即应用一次默认效果
     applyBeautyFilter();
 }
 
@@ -43,7 +42,12 @@ QPixmap BeautyDialog::getResultImage() const
 
 void BeautyDialog::on_sliderSmooth_valueChanged(int value)
 {
-    // 避免未使用的参数警告
+    (void)value;
+    applyBeautyFilter();
+}
+
+void BeautyDialog::on_sliderThin_valueChanged(int value)
+{
     (void)value;
     applyBeautyFilter();
 }
@@ -51,9 +55,9 @@ void BeautyDialog::on_sliderSmooth_valueChanged(int value)
 void BeautyDialog::applyBeautyFilter()
 {
     int smoothLevel = ui->sliderSmooth->value();
+    int thinLevel = ui->sliderThin->value();
 
-    // 调用简化的 process 函数，只传递磨皮等级
-    QImage result = processor->process(originalPixmap.toImage(), smoothLevel);
+    QImage result = processor->process(originalPixmap.toImage(), smoothLevel, thinLevel);
     if (!result.isNull()) {
         resultPixmap = QPixmap::fromImage(result);
         ui->labelAfter->setPixmap(resultPixmap.scaled(ui->labelAfter->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));

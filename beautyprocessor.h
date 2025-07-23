@@ -1,29 +1,33 @@
+// beautyprocessor.h
 #ifndef BEAUTYPROCESSOR_H
 #define BEAUTYPROCESSOR_H
 
 #include <QImage>
-#include <opencv2/opencv.hpp> // 只需要标准库
+#include <QTemporaryFile>
+#include <memory>
+#include <opencv2/opencv.hpp>
+#include <dlib/image_processing/frontal_face_detector.h>
+#include <dlib/image_processing/render_face_detections.h>
+#include <dlib/image_processing.h>
+#include <dlib/image_io.h>
 
-/**
- * @brief 图像美颜功能核心处理器 (仅包含标准库功能)
- *
- * 封装了基于双边滤波的磨皮算法。
- */
 class BeautyProcessor
 {
 public:
-    BeautyProcessor() = default; // 无需加载任何模型
+    BeautyProcessor();
 
-    /**
-     * @brief 对外提供的唯一处理接口
-     * @param sourceImage 原始 QImage
-     * @param smoothLevel 磨皮等级 (0-100)
-     * @return 美颜后的 QImage
-     */
-    QImage process(const QImage &sourceImage, int smoothLevel);
+    QImage process(const QImage &sourceImage, int smoothLevel, int thinLevel);
 
 private:
-    void applySkinSmoothing(cv::Mat &image, int level);
+    void applySkinSmoothing(cv::Mat &image, const dlib::full_object_detection& landmarks, int level);
+    void applyFaceThinning(cv::Mat &image, const dlib::full_object_detection& landmarks, int level);
+
+    // --- UPDATED: Replaced CascadeClassifier with dlib's detector ---
+    dlib::frontal_face_detector face_detector;
+    dlib::shape_predictor landmark_predictor;
+
+    // Only one temporary file is needed now
+    std::unique_ptr<QTemporaryFile> tempModelFile;
 };
 
 #endif // BEAUTYPROCESSOR_H

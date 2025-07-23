@@ -1,7 +1,8 @@
 <RCC>
     <qresource prefix="/">
-        <file>models/haarcascade_frontalface_alt2.xml</file>
+        <file alias="resources/haarcascades/haarcascade_frontalface_alt.xml">models/haarcascade_frontalface_alt2.xml</file>
         <file>models/lbfmodel.yaml</file>
+        <file alias="resources/models/shape_predictor_68_face_landmarks.dat">models/shape_predictor_68_face_landmarks.dat</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>resources/fonts/Inter_18pt-Regular.ttf</file>
@@ -9,7 +10,7 @@
         <file>resources/fonts/Inter_28pt-Regular.ttf</file>
     </qresource>
     <qresource prefix="/styles">
-        <file>resources/sytles/style.qss</file>
+        <file>resources/styles/style.qss</file>
     </qresource>
     <qresource prefix="/icons">
         <file>resources/icons/activity.svg</file>
