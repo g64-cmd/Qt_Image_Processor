@@ -31,6 +31,8 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_stitching4d
     LIBS += -lopencv_calib3d4d
     LIBS += -lopencv_imgcodecs4d
+    LIBS += -lopencv_video4d
+    LIBS += -lopencv_videoio4d
     # ... 其他您需要的带 'd' 的模块
     LIBS += -ldlibd               # <-- 新增此行，解决 dlib 链接错误
     LIBS += -lopenblas
@@ -49,6 +51,8 @@ CONFIG(debug, debug|release) {
     LIBS += -lopencv_stitching4
     LIBS += -lopencv_calib3d4
     LIBS += -lopencv_imgcodecs4
+    LIBS += -lopencv_video4
+    LIBS += -lopencv_videoio4
     # ... 其他您需要的不带 'd' 的模块
     LIBS += -ldlib               # <-- 新增此行，解决 dlib 链接错误
     LIBS += -lopenblas
@@ -83,7 +87,8 @@ SOURCES += \
     newstitcherdialog.cpp \
     processcommand.cpp \
     stagingareamanager.cpp \
-    stitcherdialog.cpp
+    stitcherdialog.cpp \
+    videoprocessor.cpp
 
 HEADERS += \
     beautydialog.h \
@@ -107,7 +112,8 @@ HEADERS += \
     newstitcherdialog.h \
     processcommand.h \
     stagingareamanager.h \
-    stitcherdialog.h
+    stitcherdialog.h \
+    videoprocessor.h
 
 FORMS += \
     beautydialog.ui \
