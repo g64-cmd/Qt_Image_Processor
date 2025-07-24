@@ -2,9 +2,8 @@
 #define STITCHERDIALOG_H
 
 #include <QDialog>
-#include <QPixmap> // 新增
+#include <QPixmap>
 
-// 向前声明
 namespace Ui {
 class StitcherDialog;
 }
@@ -22,8 +21,6 @@ class StitcherDialog : public QDialog
 public:
     explicit StitcherDialog(StagingAreaManager *manager, DraggableItemModel *model, QWidget *parent = nullptr);
     ~StitcherDialog();
-
-    // 新增：公共函数，用于获取最终拼接好的图片
     QPixmap getFinalImage() const;
 
 protected:

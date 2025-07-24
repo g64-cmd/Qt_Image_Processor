@@ -1,4 +1,3 @@
-// stagingareamanager.cpp
 #include "stagingareamanager.h"
 #include "draggableitemmodel.h"
 #include <QStandardItem>
@@ -15,18 +14,12 @@ StagingAreaManager::StagingAreaManager(DraggableItemModel *model, QObject *paren
 QString StagingAreaManager::addNewImage(const QPixmap &pixmap, const QString &baseName)
 {
     if (pixmap.isNull()) return QString();
-
     StagedImage newImage;
     newImage.id = QUuid::createUuid().toString();
     newImage.pixmap = pixmap;
     newImage.name = QString("%1_%2").arg(baseName).arg(++imageCounter);
-
     stagedImages.prepend(newImage);
-
-    while (stagedImages.size() > MaxStagedImages) {
-        stagedImages.removeLast();
-    }
-
+    while (stagedImages.size() > MaxStagedImages) stagedImages.removeLast();
     updateModel();
     return newImage.id;
 }
@@ -40,13 +33,10 @@ void StagingAreaManager::updateImage(const QString &id, const QPixmap &newPixmap
             break;
         }
     }
-
     if (foundIndex == -1) return;
-
     StagedImage item = stagedImages.takeAt(foundIndex);
     item.pixmap = newPixmap;
     stagedImages.prepend(item);
-
     updateModel();
 }
 
@@ -59,12 +49,9 @@ void StagingAreaManager::promoteImage(const QString &id)
             break;
         }
     }
-
     if (foundIndex <= 0) return;
-
     StagedImage item = stagedImages.takeAt(foundIndex);
     stagedImages.prepend(item);
-
     updateModel();
 }
 
@@ -85,7 +72,7 @@ StagingAreaManager::StagedImage StagingAreaManager::getStagedImage(const QString
             return image;
         }
     }
-    return StagedImage(); // Return an empty struct if not found
+    return StagedImage();
 }
 
 

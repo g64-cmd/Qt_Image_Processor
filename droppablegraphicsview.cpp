@@ -7,7 +7,7 @@ DroppableGraphicsView::DroppableGraphicsView(QWidget *parent)
     : QGraphicsView(parent)
 {
     setAcceptDrops(true);
-    setMouseTracking(true); // <--- 重要：启用鼠标跟踪
+    setMouseTracking(true);
 }
 
 void DroppableGraphicsView::dragEnterEvent(QDragEnterEvent *event)
@@ -43,10 +43,8 @@ void DroppableGraphicsView::dropEvent(QDropEvent *event)
     }
 }
 
-// <--- 新增实现
 void DroppableGraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
-    // 发出包含场景坐标的信号
     emit mouseMovedOnScene(mapToScene(event->pos()));
     QGraphicsView::mouseMoveEvent(event);
 }

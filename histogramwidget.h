@@ -11,8 +11,6 @@ class HistogramWidget : public QWidget
 
 public:
     explicit HistogramWidget(QWidget *parent = nullptr);
-
-    // 更新直方图数据
     void updateHistogram(const QImage &image);
 
 protected:
@@ -20,7 +18,6 @@ protected:
 
 private:
     void calculateHistogram(const QImage &image);
-
     QVector<int> redChannel;
     QVector<int> greenChannel;
     QVector<int> blueChannel;

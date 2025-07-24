@@ -6,9 +6,7 @@ ProcessCommand::ProcessCommand(MainWindow *window, Operation op, QUndoCommand *p
     : QUndoCommand(parent), mainWindow(window), operation(op)
 {
     imageId = mainWindow->getCurrentImageId();
-    // --- 关键修复：将函数调用从 getCurrentPixmap 改为 getCurrentImagePixmap ---
     beforePixmap = mainWindow->getCurrentImagePixmap();
-
     switch (operation) {
     case Sharpen:
         setText("图像锐化");

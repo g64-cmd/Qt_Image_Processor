@@ -1,4 +1,3 @@
-// newstitcherdialog.h
 #ifndef NEWSTITCHERDIALOG_H
 #define NEWSTITCHERDIALOG_H
 
@@ -9,11 +8,10 @@
 #include <opencv2/opencv.hpp>
 #include "imagestitcherprocessor.h"
 
-// --- FIX: Moved StitcherThread class definition to the header file ---
-// This allows Qt's Meta-Object Compiler (moc) to process it correctly.
 class StitcherThread : public QThread
 {
     Q_OBJECT
+
 public:
     StitcherThread(const std::vector<cv::Mat>& imgs, QObject* parent = nullptr)
         : QThread(parent), images(imgs) {}
@@ -32,7 +30,6 @@ private:
 };
 
 
-// --- 向前声明 ---
 namespace Ui {
 class NewStitcherDialog;
 }
@@ -44,7 +41,6 @@ class NewStitcherDialog : public QDialog
 public:
     explicit NewStitcherDialog(QWidget *parent = nullptr);
     ~NewStitcherDialog();
-
     QPixmap getResultImage() const;
 
 private slots:
@@ -52,11 +48,10 @@ private slots:
     void on_removeButton_clicked();
     void on_moveUpButton_clicked();
     void on_moveDownButton_clicked();
-    void on_stitchButtonClicked(); // 连接到“拼接”按钮
+    void on_stitchButtonClicked();
 
 private:
     void updateButtonStates();
-
     Ui::NewStitcherDialog *ui;
     QStringList imagePaths;
     QPixmap resultPixmap;

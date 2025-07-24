@@ -18,8 +18,6 @@ class InteractivePixmapItem : public QGraphicsObject
     Q_OBJECT
 public:
     explicit InteractivePixmapItem(const QPixmap &pixmap, QGraphicsItem *parent = nullptr);
-
-    // QGraphicsItem 虚函数重写
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
@@ -27,7 +25,6 @@ signals:
     void itemClicked(InteractivePixmapItem *item);
 
 protected:
-    // 只重写需要的事件
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void wheelEvent(QGraphicsSceneWheelEvent *event) override;
 

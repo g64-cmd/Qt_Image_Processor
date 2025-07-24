@@ -11,7 +11,6 @@
 class GrayScaleProcessor
 {
 public:
-    // 这是一个纯静态工具类，禁止实例化
     GrayScaleProcessor() = delete;
 
     /**

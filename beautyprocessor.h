@@ -1,4 +1,3 @@
-// beautyprocessor.h
 #ifndef BEAUTYPROCESSOR_H
 #define BEAUTYPROCESSOR_H
 
@@ -22,11 +21,9 @@ private:
     void applySkinSmoothing(cv::Mat &image, const dlib::full_object_detection& landmarks, int level);
     void applyFaceThinning(cv::Mat &image, const dlib::full_object_detection& landmarks, int level);
 
-    // --- UPDATED: Replaced CascadeClassifier with dlib's detector ---
     dlib::frontal_face_detector face_detector;
     dlib::shape_predictor landmark_predictor;
 
-    // Only one temporary file is needed now
     std::unique_ptr<QTemporaryFile> tempModelFile;
 };
 

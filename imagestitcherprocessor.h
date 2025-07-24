@@ -1,4 +1,3 @@
-// imagestitcherprocessor.h
 #ifndef IMAGESTITCHERPROCESSOR_H
 #define IMAGESTITCHERPROCESSOR_H
 

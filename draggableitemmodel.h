@@ -3,7 +3,6 @@
 
 #include <QStandardItemModel>
 
-// 向前声明
 class QMimeData;
 
 /**
@@ -18,14 +17,8 @@ class DraggableItemModel : public QStandardItemModel
 
 public:
     explicit DraggableItemModel(QObject *parent = nullptr);
-
-    // 设置拖拽标志，允许拖动
     Qt::ItemFlags flags(const QModelIndex &index) const override;
-
-    // 声明支持的MIME类型
     QStringList mimeTypes() const override;
-
-    // 打包拖拽数据
     QMimeData *mimeData(const QModelIndexList &indexes) const override;
 };
 

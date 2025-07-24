@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-
 #include <QApplication>
 #include <QFile>
 #include <QFontDatabase>
@@ -8,9 +7,6 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-
-    // --- 1. 加载自定义字体 ---
-    // 路径已更新为匹配 .qrc 文件中的前缀和您的确切文件名
     int fontId = QFontDatabase::addApplicationFont(":/fonts/resources/fonts/Inter_18pt-Regular.ttf");
     if (fontId != -1) {
         QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
@@ -21,9 +17,6 @@ int main(int argc, char *argv[])
     } else {
         qWarning() << "Could not load custom font: :/fonts/resources/fonts/Inter_18pt-Regular.ttf";
     }
-
-    // --- 2. 加载全局样式表 ---
-    // 路径已更新为匹配 .qrc 文件中的前缀
     QFile styleFile(":/styles/resources/styles/style.qss");
     if (styleFile.open(QFile::ReadOnly | QFile::Text)) {
         QString styleSheet = QLatin1String(styleFile.readAll());

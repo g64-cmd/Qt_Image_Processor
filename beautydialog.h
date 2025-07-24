@@ -1,4 +1,3 @@
-// beautydialog.h
 #ifndef BEAUTYDIALOG_H
 #define BEAUTYDIALOG_H
 

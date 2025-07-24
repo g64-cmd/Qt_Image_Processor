@@ -12,7 +12,6 @@
 class ImageConverter
 {
 public:
-    // 禁止实例化，这是一个纯静态工具类
     ImageConverter() = delete;
 
     /**

@@ -4,7 +4,6 @@
 #include <QDialog>
 #include <QPixmap>
 
-// --- 關鍵修復：將命名空間改為小寫以匹配 .ui 文件 ---
 namespace Ui {
 class imagetexturetransferdialog;
 }
@@ -24,8 +23,6 @@ private slots:
 
 private:
     void applyTextureTransfer();
-
-    // --- 關鍵修復：使用正確的小寫 UI 類 ---
     Ui::imagetexturetransferdialog *ui;
     QPixmap contentPixmap;
     QPixmap texturePixmap;

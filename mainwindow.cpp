@@ -1,4 +1,3 @@
-//mainwindow.cpp
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "imageprocessor.h"
@@ -12,7 +11,8 @@
 #include "beautydialog.h"
 #include "histogramwidget.h"
 #include "newstitcherdialog.h"
-#include "videoprocessor.h" // 引入新的视频处理器头文件
+#include "videoprocessor.h"
+#include "imageconverter.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -45,8 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
     , videoPixmapItem(nullptr)
 {
     ui->setupUi(this);
-
-    // --- 图像处理标签页的UI设置 ---
     const QSize iconSize(20, 20);
     ui->applyAdjustmentsButton->setIcon(QIcon(":/icons/resources/icons/check-square.svg"));
     ui->imageSharpenButton->setIcon(QIcon(":/icons/resources/icons/edit-3.svg"));
@@ -118,25 +116,19 @@ MainWindow::MainWindow(QWidget *parent)
     ui->colorSwatchLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     ui->colorSwatchLabel->setAutoFillBackground(true);
     updateExtraInfoPanels(QPixmap());
-
-
-    // --- 视频处理标签页的UI设置与逻辑连接 ---
     videoScene = new QGraphicsScene(this);
     ui->videoView->setScene(videoScene);
     videoProcessor = new VideoProcessor(ui, this);
-
-    // 将UI控件的信号连接到VideoProcessor的槽函数
     connect(ui->addVideoButton, &QPushButton::clicked, videoProcessor, &VideoProcessor::addVideos);
     connect(ui->removeVideoButton, &QPushButton::clicked, videoProcessor, &VideoProcessor::removeSelectedVideo);
     connect(ui->videoListView, &QListView::clicked, videoProcessor, &VideoProcessor::playVideoAtIndex);
     connect(ui->playPauseButton, &QPushButton::clicked, videoProcessor, &VideoProcessor::togglePlayPause);
+    connect(ui->videoSlider, &QSlider::sliderPressed, videoProcessor, &VideoProcessor::onSliderPressed);
     connect(ui->videoSlider, &QSlider::sliderMoved, videoProcessor, &VideoProcessor::seek);
     connect(ui->videoSlider, &QSlider::sliderReleased, videoProcessor, &VideoProcessor::stopSeeking);
     connect(ui->speedComboBox, &QComboBox::currentIndexChanged, videoProcessor, &VideoProcessor::setSpeed);
     connect(ui->saveFrameButton, &QPushButton::clicked, videoProcessor, &VideoProcessor::saveCurrentFrame);
     connect(ui->recordButton, &QPushButton::clicked, videoProcessor, &VideoProcessor::toggleRecording);
-
-    // 将VideoProcessor的信号连接到MainWindow的槽函数以更新UI
     connect(videoProcessor, &VideoProcessor::frameReady, this, &MainWindow::updateVideoFrame);
     connect(videoProcessor, &VideoProcessor::progressUpdated, this, &MainWindow::updateVideoProgress);
     connect(videoProcessor, &VideoProcessor::videoOpened, this, &MainWindow::onVideoOpened);
@@ -146,8 +138,6 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-
-// --- 视频处理相关的槽函数 (UI更新) ---
 
 void MainWindow::updateVideoFrame(const QPixmap &frame)
 {
@@ -160,26 +150,24 @@ void MainWindow::updateVideoFrame(const QPixmap &frame)
     ui->videoView->fitInView(videoPixmapItem, Qt::KeepAspectRatio);
 }
 
-void MainWindow::updateVideoProgress(const QString &timeString, int framePosition, int frameCount)
+void MainWindow::updateVideoProgress(const QString &timeString, int position, int duration)
 {
     ui->timeLabel->setText(timeString);
-    // 只有在用户没有拖动滑块时才更新滑块位置
     if (!ui->videoSlider->isSliderDown()) {
         ui->videoSlider->blockSignals(true);
-        ui->videoSlider->setValue(framePosition);
+        ui->videoSlider->setRange(0, duration);
+        ui->videoSlider->setValue(position);
         ui->videoSlider->blockSignals(false);
     }
 }
 
-void MainWindow::onVideoOpened(bool success, int totalFrames, double fps)
+void MainWindow::onVideoOpened(bool success, int totalDurationMs, double fps)
 {
+    Q_UNUSED(fps);
     if(success) {
-        ui->videoSlider->setRange(0, totalFrames);
+        ui->videoSlider->setRange(0, totalDurationMs);
     }
 }
-
-
-// --- 图像处理相关的槽函数与方法 (现有代码) ---
 
 void MainWindow::on_actionopen_triggered()
 {
@@ -390,7 +378,6 @@ void MainWindow::on_imageStitchButton_clicked()
     }
 }
 
-// --- FIX: Added the missing implementation for the new stitch button ---
 void MainWindow::on_imageNewStitchButton_clicked()
 {
     NewStitcherDialog dialog(this);
@@ -550,11 +537,9 @@ void MainWindow::onMouseMovedOnImage(const QPointF &scenePos)
         ui->colorSwatchLabel->setPalette(palette);
         return;
     }
-
     QPointF pixmapPos = pixmapItem->mapFromScene(scenePos);
     int x = qRound(pixmapPos.x());
     int y = qRound(pixmapPos.y());
-
     if (x >= 0 && x < processedPixmap.width() && y >= 0 && y < processedPixmap.height()) {
         QColor color = processedPixmap.toImage().pixelColor(x, y);
         ui->colorPosLabel->setText(QString("Pos: (%1, %2)").arg(x).arg(y));
@@ -581,18 +566,15 @@ void MainWindow::resetAdjustmentSliders()
     ui->contrastSlider->blockSignals(true);
     ui->saturationSlider->blockSignals(true);
     ui->hueSlider->blockSignals(true);
-
     ui->gammaSlider->setValue(100);
     ui->brightnessSlider->setValue(0);
     ui->contrastSlider->setValue(0);
     ui->saturationSlider->setValue(0);
     ui->hueSlider->setValue(0);
-
     currentBrightness = 0;
     currentContrast = 0;
     currentSaturation = 0;
     currentHue = 0;
-
     ui->gammaSlider->blockSignals(false);
     ui->brightnessSlider->blockSignals(false);
     ui->contrastSlider->blockSignals(false);

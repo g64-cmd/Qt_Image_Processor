@@ -1,4 +1,3 @@
-// stagingareamanager.h
 #ifndef STAGINGAREAMANAGER_H
 #define STAGINGAREAMANAGER_H
 
@@ -7,11 +6,12 @@
 #include <QList>
 #include <QPair>
 
-class DraggableItemModel; // Use forward declaration
+class DraggableItemModel;
 
 class StagingAreaManager : public QObject
 {
     Q_OBJECT
+
 public:
     struct StagedImage {
         QString id;
@@ -20,7 +20,6 @@ public:
     };
 
     explicit StagingAreaManager(DraggableItemModel *model, QObject *parent = nullptr);
-
     QString addNewImage(const QPixmap &pixmap, const QString &baseName);
     void updateImage(const QString &id, const QPixmap &newPixmap);
     void promoteImage(const QString &id);
@@ -31,7 +30,6 @@ public:
 
 private:
     void updateModel();
-
     DraggableItemModel *model;
     QList<StagedImage> stagedImages;
     static const int MaxStagedImages = 15;

@@ -14,8 +14,6 @@ public:
     static QImage blend(const QImage &imageA, const QImage &imageB, double alpha);
     static QImage textureTransfer(const QImage &contentImage, const QImage &textureImage);
     static QImage applyGamma(const QImage &sourceImage, double gamma);
-
-    // --- 更新色彩调整调度函数 ---
     static QImage adjustColor(const QImage &sourceImage, int brightness, int contrast, int saturation, int hue);
 };
 
