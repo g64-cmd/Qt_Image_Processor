@@ -145,5 +145,4 @@ RESOURCES += \
     # 定义一个在链接步骤完成后执行的命令
     # 1. 先删除旧的 resources 文件夹 (如果存在)，确保是全新复制
     # 2. 再将源 resources 文件夹完整复制到目标目录
-    QMAKE_POST_LINK += $$QMAKE_DEL_TREE $$shell_path($$DEST_DIR/resources) $$escape_expand(\\n\\t)
     QMAKE_POST_LINK += $$QMAKE_COPY_DIR $$shell_path($$RESOURCES_DIR) $$shell_path($$DEST_DIR)

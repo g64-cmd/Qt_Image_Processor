@@ -11,7 +11,7 @@
 #include "imagetexturetransferdialog.h"
 #include "beautydialog.h"
 #include "histogramwidget.h"
-#include "newstitcherdialog.h" // <-- 确保包含了新对话框的头文件
+#include "newstitcherdialog.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -41,9 +41,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // --- 统一设置所有功能按钮的图标和尺寸 ---
-    const QSize iconSize(20, 20); // 定义一个统一的图标尺寸
+    const QSize iconSize(20, 20);
 
+    ui->applyAdjustmentsButton->setIcon(QIcon(":/icons/resources/icons/check-square.svg"));
     ui->imageSharpenButton->setIcon(QIcon(":/icons/resources/icons/edit-3.svg"));
     ui->imageGrayscaleButton->setIcon(QIcon(":/icons/resources/icons/circle.svg"));
     ui->cannyButton->setIcon(QIcon(":/icons/resources/icons/crop.svg"));
@@ -52,11 +52,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->textureMigrationButton->setIcon(QIcon(":/icons/resources/icons/image.svg"));
     ui->beautyButton->setIcon(QIcon(":/icons/resources/icons/smile.svg"));
     ui->gamma->setIcon(QIcon(":/icons/resources/icons/sun.svg"));
-
-    // --- 新增：为新的图像拼接按钮设置图标 ---
     ui->imageNewStitchButton->setIcon(QIcon(":/icons/resources/icons/layout.svg"));
+    ui->deleteStagedImageButton->setIcon(QIcon(":/icons/resources/icons/trash-2.svg"));
 
-    // 将统一尺寸应用到所有按钮
+    ui->applyAdjustmentsButton->setIconSize(iconSize);
     ui->imageSharpenButton->setIconSize(iconSize);
     ui->imageGrayscaleButton->setIconSize(iconSize);
     ui->cannyButton->setIconSize(iconSize);
@@ -65,7 +64,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->textureMigrationButton->setIconSize(iconSize);
     ui->beautyButton->setIconSize(iconSize);
     ui->gamma->setIconSize(iconSize);
-    ui->imageNewStitchButton->setIconSize(iconSize); // <-- 应用到新按钮
+    ui->imageNewStitchButton->setIconSize(iconSize);
+    ui->deleteStagedImageButton->setIconSize(iconSize);
 
 
     imageScene = new QGraphicsScene(this);
@@ -133,19 +133,79 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-// --- 新增：新的图像拼接按钮的槽函数实现 ---
+// --- 新增：为新按钮添加槽函数实现 ---
+void MainWindow::on_applyAdjustmentsButton_clicked()
+{
+    if (currentStagedImageId.isEmpty() || processedPixmap.isNull()) {
+        QMessageBox::information(this, "提示", "没有可应用的参数调整。");
+        return;
+    }
+
+    // 将当前处理后的图像作为一个新副本添加到暂存区
+    QString baseName = stagingManager->getStagedImage(currentStagedImageId).name;
+    // Remove previous suffixes like "_adjusted" before adding a new one
+    baseName.remove(QRegularExpression("_adjusted_?\\d*$"));
+    QString newId = stagingManager->addNewImage(processedPixmap, baseName + "_adjusted");
+
+    if (!newId.isEmpty()) {
+        // 选中并显示这个新创建的副本
+        displayImageFromStagingArea(newId);
+        // 让新项目在列表中可见
+        QModelIndex index = stagingModel->index(0, 0); // 新项目总是在第一个
+        ui->recentImageView->setCurrentIndex(index);
+        statusBar()->showMessage("参数调整已应用为新副本。", 3000);
+    }
+}
+
+void MainWindow::on_deleteStagedImageButton_clicked()
+{
+    QModelIndexList selectedIndexes = ui->recentImageView->selectionModel()->selectedIndexes();
+    if (selectedIndexes.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先在暂存区中选择要删除的图片。");
+        return;
+    }
+
+    // Collect all unique IDs to be deleted
+    QSet<QString> idsToDelete;
+    for (const QModelIndex &index : selectedIndexes) {
+        idsToDelete.insert(index.data(Qt::UserRole).toString());
+    }
+
+    for (const QString &id : idsToDelete) {
+        stagingManager->removeImage(id);
+        // 如果删除的是当前正在显示的图片，则清空主视图
+        if (id == currentStagedImageId) {
+            clearMainView();
+        }
+    }
+    statusBar()->showMessage("选中的图片已从暂存区删除。", 3000);
+}
+
+void MainWindow::clearMainView()
+{
+    imageScene->clear();
+    pixmapItem = nullptr;
+    processedPixmap = QPixmap();
+    currentStagedImageId.clear();
+    updateImageInfo();
+    updateExtraInfoPanels(QPixmap());
+    resetAdjustmentSliders();
+    ui->gammaSlider->setEnabled(false);
+    ui->brightnessSlider->setEnabled(false);
+    ui->contrastSlider->setEnabled(false);
+    ui->saturationSlider->setEnabled(false);
+    ui->hueSlider->setEnabled(false);
+}
+
+
 void MainWindow::on_imageNewStitchButton_clicked()
 {
-    // 1. 创建并显示新的拼接对话框
     NewStitcherDialog dialog(this);
-    int ret = dialog.exec(); // 以模态方式运行
+    int ret = dialog.exec();
 
-    // 2. 检查用户是否点击了"拼接"按钮并成功返回
     if (ret == QDialog::Accepted) {
-        // 3. 从对话框获取拼接结果
         QPixmap stitchedPixmap = dialog.getResultImage();
         if (!stitchedPixmap.isNull()) {
-            // 4. 将拼接后的图像添加到暂存区并显示
             QString newId = stagingManager->addNewImage(stitchedPixmap, "stitched_result");
             if (!newId.isEmpty()) {
                 displayImageFromStagingArea(newId);
@@ -160,10 +220,12 @@ void MainWindow::on_imageNewStitchButton_clicked()
 
 void MainWindow::displayImageFromStagingArea(const QString &imageId)
 {
-    QPixmap pixmap = stagingManager->getPixmap(imageId);
-    if (pixmap.isNull()) return;
+    StagingAreaManager::StagedImage stagedImage = stagingManager->getStagedImage(imageId);
+    if (stagedImage.pixmap.isNull()) return;
+
     undoStack->clear();
     currentStagedImageId = imageId;
+    currentBaseName = stagedImage.name;
 
     resetAdjustmentSliders();
     ui->gammaSlider->setEnabled(true);
@@ -172,7 +234,7 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
     ui->saturationSlider->setEnabled(true);
     ui->hueSlider->setEnabled(true);
 
-    processedPixmap = pixmap;
+    processedPixmap = stagedImage.pixmap;
     currentSavePath.clear();
     updateDisplayImage(processedPixmap);
     fitToWindow();
@@ -180,7 +242,7 @@ void MainWindow::displayImageFromStagingArea(const QString &imageId)
 
     updateExtraInfoPanels(processedPixmap);
 
-    ui->statusbar->showMessage(tr("已加载: %1").arg(currentStagedImageId), 3000);
+    ui->statusbar->showMessage(tr("已加载: %1").arg(currentBaseName), 3000);
 }
 
 void MainWindow::on_gamma_clicked()
@@ -237,7 +299,6 @@ void MainWindow::applyAllAdjustments()
 
     processedPixmap = QPixmap::fromImage(tempImage);
     updateDisplayImage(processedPixmap);
-
     updateExtraInfoPanels(processedPixmap);
 }
 

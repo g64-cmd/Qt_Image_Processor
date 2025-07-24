@@ -59,7 +59,7 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::black); // 黑色背景
+    painter.fillRect(rect(), Qt::lightGray);
 
     if (isGrayscale) {
         // 绘制灰度直方图

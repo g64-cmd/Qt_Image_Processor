@@ -47,8 +47,6 @@ private slots:
     void on_imageBlendButton_clicked();
     void on_textureMigrationButton_clicked();
     void on_beautyButton_clicked();
-
-    // --- 新增：为新的图像拼接按钮添加槽函数声明 ---
     void on_imageNewStitchButton_clicked();
 
     void on_recentImageView_clicked(const QModelIndex &index);
@@ -64,6 +62,10 @@ private slots:
 
     // --- 颜色拾取器的槽函数 ---
     void onMouseMovedOnImage(const QPointF &scenePos);
+
+    // --- 新增：为新按钮添加槽函数 ---
+    void on_applyAdjustmentsButton_clicked();
+    void on_deleteStagedImageButton_clicked();
 
 private:
     void scaleImage(double newScale);
@@ -84,6 +86,7 @@ private:
     void resetAdjustmentSliders();
 
     void updateExtraInfoPanels(const QPixmap &pixmap);
+    void clearMainView();
 
     Ui::MainWindow *ui;
     QString currentStagedImageId;

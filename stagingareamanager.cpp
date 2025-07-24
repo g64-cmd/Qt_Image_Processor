@@ -1,10 +1,12 @@
+// stagingareamanager.cpp
 #include "stagingareamanager.h"
-#include <QStandardItemModel>
+#include "draggableitemmodel.h"
+#include <QStandardItem>
 #include <QIcon>
 #include <QUuid>
 #include <utility>
 
-StagingAreaManager::StagingAreaManager(QStandardItemModel *model, QObject *parent)
+StagingAreaManager::StagingAreaManager(DraggableItemModel *model, QObject *parent)
     : QObject(parent), model(model)
 {
     Q_ASSERT(model != nullptr);
@@ -76,10 +78,28 @@ QPixmap StagingAreaManager::getPixmap(const QString &id) const
     return QPixmap();
 }
 
-// --- 新增函数实现 ---
+StagingAreaManager::StagedImage StagingAreaManager::getStagedImage(const QString &id) const
+{
+    for (const auto &image : std::as_const(stagedImages)) {
+        if (image.id == id) {
+            return image;
+        }
+    }
+    return StagedImage(); // Return an empty struct if not found
+}
+
+
 int StagingAreaManager::getImageCount() const
 {
     return stagedImages.size();
+}
+
+void StagingAreaManager::removeImage(const QString &id)
+{
+    stagedImages.removeIf([&](const StagedImage &img){
+        return img.id == id;
+    });
+    updateModel();
 }
 
 
